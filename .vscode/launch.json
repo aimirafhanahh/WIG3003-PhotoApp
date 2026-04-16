@@ -3,6 +3,13 @@
   "configurations": [
     {
       "type": "java",
+      "name": "GsonTest",
+      "request": "launch",
+      "mainClass": "repository.GsonTest",
+      "projectName": "WIG3003-PhotoApp_fb27822c"
+    },
+    {
+      "type": "java",
       "name": "Run JavaFX",
       "request": "launch",
       "mainClass": "main.MainApp",
