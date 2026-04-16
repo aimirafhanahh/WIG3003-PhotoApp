@@ -53,7 +53,11 @@ public class ImageViewer {
                 heartLabel.setText("❤️");
             }
         });
+        loadBtn.setStyle("-fx-background-color: #4CAF50; -fx-text-fill: white;");
+        saveBtn.setStyle("-fx-background-color: #2196F3; -fx-text-fill: white;");
 
-        return new VBox(10, loadBtn, imageView, annotationField, saveBtn, heartLabel);
+        VBox layout = new VBox(10, loadBtn, imageView, annotationField, saveBtn, heartLabel);
+        layout.setStyle("-fx-padding: 15;");
+        return layout;
     }
 }
