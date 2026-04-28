@@ -1,47 +1,48 @@
 package repository;
 
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
-
 import java.io.*;
-import java.lang.reflect.Type;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.Properties;
 
 public class AnnotationManager {
 
-    private static final String FILE = "annotations.json";
-    private static Map<String, String> annotations = new HashMap<>();
-    private static Gson gson = new Gson();
+    private static final String FILE_NAME = "annotations.properties";
+    private Properties annotations;
 
-    static {
-        loadFromFile();
+    public AnnotationManager() {
+        annotations = new Properties();
+        loadAnnotations();
     }
 
-    public static void saveAnnotation(String path, String text) {
-        annotations.put(path, text);
-        saveToFile();
-    }
+    private void loadAnnotations() {
+        File file = new File(FILE_NAME);
 
-    public static String getAnnotation(String path) {
-        return annotations.getOrDefault(path, "");
-    }
+        if (!file.exists()) {
+            return;
+        }
 
-    private static void saveToFile() {
-        try (Writer writer = new FileWriter(FILE)) {
-            gson.toJson(annotations, writer);
+        try (FileInputStream fis = new FileInputStream(file)) {
+            annotations.load(fis);
         } catch (IOException e) {
-            e.printStackTrace();
+            System.out.println("Failed to load annotations: " + e.getMessage());
         }
     }
 
-    private static void loadFromFile() {
-        try (Reader reader = new FileReader(FILE)) {
-            Type type = new TypeToken<Map<String, String>>(){}.getType();
-            annotations = gson.fromJson(reader, type);
-            if (annotations == null) annotations = new HashMap<>();
+    public void saveAnnotation(String imagePath, String annotation) {
+        annotations.setProperty(imagePath, annotation);
+
+        try (FileOutputStream fos = new FileOutputStream(FILE_NAME)) {
+            annotations.store(fos, "Image Annotations");
         } catch (IOException e) {
-            annotations = new HashMap<>();
+            System.out.println("Failed to save annotation: " + e.getMessage());
         }
+    }
+
+    public String getAnnotation(String imagePath) {
+        return annotations.getProperty(imagePath, "");
+    }
+
+    public boolean hasAnnotation(String imagePath) {
+        String note = getAnnotation(imagePath);
+        return note != null && !note.trim().isEmpty();
     }
 }
