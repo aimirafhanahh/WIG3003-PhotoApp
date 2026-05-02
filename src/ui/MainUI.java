@@ -1,5 +1,6 @@
 package ui;
 
+import javafx.embed.swing.SwingFXUtils;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Parent;
@@ -99,10 +100,7 @@ public class MainUI {
 
         galleryBtn.setOnAction(e -> root.setCenter(createMainContent()));
 
-        editingBtn.setOnAction(e -> showModulePage(
-                "🎨 Image Editing",
-                "Brightness, contrast, grayscale, and border tools will be connected here."
-        ));
+        editingBtn.setOnAction(e -> showEditingPage());
 
         objectBtn.setOnAction(e -> showModulePage(
                 "✂️ Object & Transform",
@@ -305,6 +303,87 @@ public class MainUI {
         root.setCenter(page);
     }
 
+  private void showEditingPage() {
+    if (currentImage == null) {
+        showAlert("Please select an image from the Gallery first!");
+        return;
+    }
+
+    // Main Container with soft background
+    VBox layout = new VBox(25);
+    layout.setPadding(new Insets(40));
+    layout.setAlignment(Pos.TOP_CENTER);
+    layout.setStyle("-fx-background-color: #F5F5F7;"); // iOS light gray background
+
+    // Header Area
+    Label title = new Label("Edit Photo");
+    title.setStyle("-fx-font-family: 'Segoe UI', system-ui; -fx-font-size: 28px; -fx-font-weight: bold; -fx-text-fill: #1D1D1F;");
+    
+    // The Image View with rounded corners and shadow
+    ImageView editPreview = new ImageView(mainImageView.getImage());
+    editPreview.setFitHeight(420);
+    editPreview.setPreserveRatio(true);
+    
+    StackPane imageFrame = new StackPane(editPreview);
+    imageFrame.setStyle("-fx-background-color: white; -fx-background-radius: 18; " +
+                        "-fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 20, 0, 0, 10); " +
+                        "-fx-padding: 10;");
+    imageFrame.setMaxWidth(Region.USE_PREF_SIZE);
+
+    // Control Panel (Glassmorphism effect)
+    HBox controlPanel = new HBox(30);
+    controlPanel.setAlignment(Pos.CENTER);
+    controlPanel.setPadding(new Insets(25));
+    controlPanel.setMaxWidth(800);
+    controlPanel.setStyle("-fx-background-color: rgba(255, 255, 255, 0.8); -fx-background-radius: 20; " +
+                          "-fx-border-color: rgba(255, 255, 255, 0.3); -fx-border-width: 1;");
+
+    // Reusable Button Styler
+    String btnStyle = "-fx-background-color: #007AFF; -fx-text-fill: white; -fx-font-weight: bold; " +
+                      "-fx-background-radius: 12; -fx-padding: 10 20; -fx-cursor: hand;";
+    
+    // Grayscale Action
+    Button grayBtn = new Button("Mono");
+    grayBtn.setStyle(btnStyle);
+    grayBtn.setOnAction(e -> {
+        java.awt.image.BufferedImage bimg = fxToBufferedImage(editPreview.getImage());
+        editPreview.setImage(bufferedToFxImage(dip_basic.Grayscale.apply(bimg)));
+    });
+
+    // Border Action
+    Button borderBtn = new Button("Frame");
+    borderBtn.setStyle(btnStyle.replace("#007AFF", "#34C759")); // iOS Green
+    borderBtn.setOnAction(e -> {
+        java.awt.image.BufferedImage bimg = fxToBufferedImage(editPreview.getImage());
+        editPreview.setImage(bufferedToFxImage(dip_basic.Border.addBorder(bimg, 25)));
+    });
+
+    // Brightness Slider Area
+    VBox sliderBox = new VBox(8);
+    sliderBox.setAlignment(Pos.CENTER);
+    Label sliderLabel = new Label("Brightness");
+    sliderLabel.setStyle("-fx-font-weight: bold; -fx-text-fill: #8E8E93;");
+    
+    Slider brightSlider = new Slider(-100, 100, 0);
+    brightSlider.setPrefWidth(180);
+    // Real-time update (Optional: change to setOnMouseReleased for performance)
+    brightSlider.valueProperty().addListener((obs, oldVal, newVal) -> {
+        java.awt.image.BufferedImage bimg = fxToBufferedImage(mainImageView.getImage()); // Always process from original
+        editPreview.setImage(bufferedToFxImage(dip_basic.BrightnessContrast.adjustBrightness(bimg, newVal.intValue())));
+    });
+
+    sliderBox.getChildren().addAll(sliderLabel, brightSlider);
+    controlPanel.getChildren().addAll(grayBtn, borderBtn, sliderBox);
+
+    // Bottom Navigation
+    Button resetBtn = new Button("Reset");
+    resetBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: #FF3B30; -fx-font-weight: bold;");
+    resetBtn.setOnAction(e -> editPreview.setImage(mainImageView.getImage()));
+
+    layout.getChildren().addAll(title, imageFrame, controlPanel, resetBtn);
+    root.setCenter(layout);
+}
+
     private void openImageFolder() {
         DirectoryChooser chooser = new DirectoryChooser();
         chooser.setTitle("Select Image Folder");
@@ -433,4 +512,11 @@ public class MainUI {
         alert.setContentText(message);
         alert.showAndWait();
     }
+
+    private java.awt.image.BufferedImage fxToBufferedImage(Image img) {
+    return javafx.embed.swing.SwingFXUtils.fromFXImage(img, null);    }
+
+    private Image bufferedToFxImage(java.awt.image.BufferedImage bimg) {
+    return javafx.embed.swing.SwingFXUtils.toFXImage(bimg, null);}
 }
+
