@@ -1,5 +1,4 @@
 package dip_basic;
-
 import java.awt.image.BufferedImage;
 
 public class BrightnessContrast {
