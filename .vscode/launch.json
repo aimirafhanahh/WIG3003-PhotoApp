@@ -3,31 +3,24 @@
   "configurations": [
     {
       "type": "java",
+      "name": "MainApp (Run This)",
+      "request": "launch",
+      "mainClass": "main.MainApp",
+      "vmArgs": "--module-path \"C:/Users/aina/Documents/MULTIMEDIA PROGRAMMING/MULTIMEDIA PROJECT/WIG3003-PhotoApp/lib\" --add-modules javafx.controls,javafx.fxml -Djava.library.path=\"C:/Users/aina/Downloads/openjfx-17.0.19-ea+3_windows-x64_bin-sdk/javafx-sdk-17.0.19/bin\""
+    },
+    {
+      "type": "java",
+      "name": "ObjectExtractor",
+      "request": "launch",
+      "mainClass": "dip_advanced.ObjectExtractor",
+      "vmArgs": "--module-path \"C:/Users/aina/Documents/MULTIMEDIA PROGRAMMING/MULTIMEDIA PROJECT/WIG3003-PhotoApp/lib\" --add-modules javafx.controls,javafx.fxml -Djava.library.path=\"C:/Users/aina/Downloads/openjfx-17.0.19-ea+3_windows-x64_bin-sdk/javafx-sdk-17.0.19/bin\""
+    },
+    {
+      "type": "java",
       "name": "Transformations",
       "request": "launch",
       "mainClass": "dip_advanced.Transformations",
-      "projectName": "WIG3003-PhotoApp_675193e9"
-    },
-    {
-      "type": "java",
-      "name": "GsonTest",
-      "request": "launch",
-      "mainClass": "repository.GsonTest",
-      "projectName": "WIG3003-PhotoApp_fb27822c"
-    },
-    {
-      "type": "java",
-      "name": "Run JavaFX",
-      "request": "launch",
-      "mainClass": "main.MainApp",
-      "vmArgs": "--module-path \"C:\\Users\\User\\Documents\\openjfx-21.0.11_windows-x64_bin-sdk\\javafx-sdk-21.0.11\\lib\" --add-modules javafx.controls,javafx.fxml"
-    },
-    {
-      "type": "java",
-      "name": "Run JavaFX",
-      "request": "launch",
-      "mainClass": "dip_advanced.ObjectExtractor",
-      "vmArgs": "--module-path \"C:\\Users\\User\\Documents\\openjfx-21.0.11_windows-x64_bin-sdk\\javafx-sdk-21.0.11\\lib\" --add-modules javafx.controls,javafx.fxml"
+      "vmArgs": "--module-path \"C:/Users/aina/Documents/MULTIMEDIA PROGRAMMING/MULTIMEDIA PROJECT/WIG3003-PhotoApp/lib\" --add-modules javafx.controls,javafx.fxml -Djava.library.path=\"C:/Users/aina/Downloads/openjfx-17.0.19-ea+3_windows-x64_bin-sdk/javafx-sdk-17.0.19/bin\""
     }
   ]
 }

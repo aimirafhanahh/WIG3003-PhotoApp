@@ -1,5 +1,9 @@
 package ui;
 
+import javafx.embed.swing.SwingFXUtils;
+import java.awt.image.BufferedImage;
+// Ensure you also have this for the conversion logic
+import javafx.embed.swing.SwingFXUtils;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Parent;
@@ -7,6 +11,7 @@ import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
+import javafx.scene.paint.Color;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.Stage;
 import repository.AnnotationManager;
@@ -99,20 +104,11 @@ public class MainUI {
 
         galleryBtn.setOnAction(e -> root.setCenter(createMainContent()));
 
-        editingBtn.setOnAction(e -> showModulePage(
-                "🎨 Image Editing",
-                "Brightness, contrast, grayscale, and border tools will be connected here."
-        ));
+        editingBtn.setOnAction(e -> showEditingPage());
 
-        objectBtn.setOnAction(e -> showModulePage(
-                "✂️ Object & Transform",
-                "Resize, rotate, translate, and object extraction tools will be connected here."
-        ));
+        objectBtn.setOnAction(e -> showObjectTransformPage());
 
-        mosaicBtn.setOnAction(e -> showModulePage(
-                "🖼️ Mosaic Generator",
-                "Create photo mosaics using selected images."
-        ));
+        mosaicBtn.setOnAction(e -> showObjectExtractionPage()); // Using Object Extraction here
 
         videoBtn.setOnAction(e -> showModulePage(
                 "🎬 Video Creator",
@@ -305,6 +301,187 @@ public class MainUI {
         root.setCenter(page);
     }
 
+    private void showObjectTransformPage() {
+    if (currentImage == null) {
+        showAlert("Please select an image first!");
+        return;
+    }
+
+    VBox layout = new VBox(20);
+    layout.setPadding(new Insets(30));
+    layout.setAlignment(Pos.TOP_CENTER);
+    layout.setStyle("-fx-background-color: #F5F5F7;");
+
+    Label title = new Label("Transformations");
+    title.setStyle("-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: #1D1D1F;");
+
+    ImageView preview = new ImageView(mainImageView.getImage());
+    preview.setFitHeight(400);
+    preview.setPreserveRatio(true);
+    
+    StackPane imageFrame = new StackPane(preview);
+    imageFrame.setStyle("-fx-background-color: white; -fx-background-radius: 15; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 15, 0, 0, 5); -fx-padding: 10;");
+
+    // iOS Style Control Card
+    GridPane controls = new GridPane();
+    controls.setHgap(20);
+    controls.setVgap(15);
+    controls.setPadding(new Insets(20));
+    controls.setAlignment(Pos.CENTER);
+    controls.setStyle("-fx-background-color: white; -fx-background-radius: 15;");
+
+    Slider scaleS = new Slider(50, 200, 100);
+    Slider rotateS = new Slider(-180, 180, 0);
+    Slider transX = new Slider(-200, 200, 0);
+    
+    controls.add(new Label("Scale %"), 0, 0);
+    controls.add(scaleS, 1, 0);
+    controls.add(new Label("Rotate"), 0, 1);
+    controls.add(rotateS, 1, 1);
+    controls.add(new Label("Move X"), 0, 2);
+    controls.add(transX, 1, 2);
+
+    Button applyBtn = new Button("Apply Transforms");
+    applyBtn.setStyle("-fx-background-color: #007AFF; -fx-text-fill: white; -fx-background-radius: 10; -fx-padding: 8 20; -fx-font-weight: bold;");
+    
+    applyBtn.setOnAction(e -> {
+        BufferedImage bimg = fxToBufferedImage(mainImageView.getImage());
+        bimg = dip_advanced.Transformations.resize(bimg, scaleS.getValue()/100.0);
+        bimg = dip_advanced.Transformations.rotate(bimg, rotateS.getValue());
+        bimg = dip_advanced.Transformations.translate(bimg, (int)transX.getValue(), 0);
+        preview.setImage(bufferedToFxImage(bimg));
+    });
+
+    layout.getChildren().addAll(title, imageFrame, controls, applyBtn);
+    root.setCenter(layout);
+}
+
+private java.awt.Color pickedColor = java.awt.Color.WHITE;
+
+private void showObjectExtractionPage() {
+    if (currentImage == null) { showAlert("Select an image!"); return; }
+
+    VBox layout = new VBox(20);
+    layout.setPadding(new Insets(30));
+    layout.setAlignment(Pos.TOP_CENTER);
+    layout.setStyle("-fx-background-color: #F5F5F7;");
+
+    Label title = new Label("Object Extraction");
+    title.setStyle("-fx-font-size: 24px; -fx-font-weight: bold;");
+
+    ImageView preview = new ImageView(mainImageView.getImage());
+    preview.setFitHeight(400);
+    preview.setPreserveRatio(true);
+    
+    Label statusLabel = new Label("Click image to pick color");
+    statusLabel.setStyle("-fx-text-fill: #8E8E93;");
+
+    preview.setOnMouseClicked(e -> {
+        BufferedImage bimg = fxToBufferedImage(preview.getImage());
+        // Simple ratio calculation to find the pixel
+        int x = (int)(e.getX() * bimg.getWidth() / preview.getBoundsInLocal().getWidth());
+        int y = (int)(e.getY() * bimg.getHeight() / preview.getBoundsInLocal().getHeight());
+        if(x >= 0 && y >= 0 && x < bimg.getWidth() && y < bimg.getHeight()){
+            pickedColor = new java.awt.Color(bimg.getRGB(x, y), true);
+            statusLabel.setText("Picked: " + pickedColor.getRed() + ", " + pickedColor.getGreen() + ", " + pickedColor.getBlue());
+        }
+    });
+
+    Slider toleranceS = new Slider(0, 150, 60);
+    Button extractBtn = new Button("Extract Picked Color");
+    extractBtn.setStyle("-fx-background-color: #34C759; -fx-text-fill: white; -fx-background-radius: 10; -fx-padding: 10 20;");
+
+    extractBtn.setOnAction(e -> {
+        java.awt.image.BufferedImage bimg = fxToBufferedImage(mainImageView.getImage());
+        java.awt.image.BufferedImage result = dip_advanced.ObjectExtractor.extractByColor(bimg, pickedColor, (int)toleranceS.getValue());
+        preview.setImage(bufferedToFxImage(result));
+    });
+
+    layout.getChildren().addAll(title, new StackPane(preview), statusLabel, new Label("Tolerance"), toleranceS, extractBtn);
+    root.setCenter(layout);
+}
+
+  private void showEditingPage() {
+    if (currentImage == null) {
+        showAlert("Please select an image from the Gallery first!");
+        return;
+    }
+
+    // Main Container with soft background
+    VBox layout = new VBox(25);
+    layout.setPadding(new Insets(40));
+    layout.setAlignment(Pos.TOP_CENTER);
+    layout.setStyle("-fx-background-color: #F5F5F7;"); // iOS light gray background
+
+    // Header Area
+    Label title = new Label("Edit Photo");
+    title.setStyle("-fx-font-family: 'Segoe UI', system-ui; -fx-font-size: 28px; -fx-font-weight: bold; -fx-text-fill: #1D1D1F;");
+    
+    // The Image View with rounded corners and shadow
+    ImageView editPreview = new ImageView(mainImageView.getImage());
+    editPreview.setFitHeight(420);
+    editPreview.setPreserveRatio(true);
+    
+    StackPane imageFrame = new StackPane(editPreview);
+    imageFrame.setStyle("-fx-background-color: white; -fx-background-radius: 18; " +
+                        "-fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 20, 0, 0, 10); " +
+                        "-fx-padding: 10;");
+    imageFrame.setMaxWidth(Region.USE_PREF_SIZE);
+
+    // Control Panel (Glassmorphism effect)
+    HBox controlPanel = new HBox(30);
+    controlPanel.setAlignment(Pos.CENTER);
+    controlPanel.setPadding(new Insets(25));
+    controlPanel.setMaxWidth(800);
+    controlPanel.setStyle("-fx-background-color: rgba(255, 255, 255, 0.8); -fx-background-radius: 20; " +
+                          "-fx-border-color: rgba(255, 255, 255, 0.3); -fx-border-width: 1;");
+
+    // Reusable Button Styler
+    String btnStyle = "-fx-background-color: #007AFF; -fx-text-fill: white; -fx-font-weight: bold; " +
+                      "-fx-background-radius: 12; -fx-padding: 10 20; -fx-cursor: hand;";
+    
+    // Grayscale Action
+    Button grayBtn = new Button("Mono");
+    grayBtn.setStyle(btnStyle);
+    grayBtn.setOnAction(e -> {
+        java.awt.image.BufferedImage bimg = fxToBufferedImage(editPreview.getImage());
+        editPreview.setImage(bufferedToFxImage(dip_basic.Grayscale.apply(bimg)));
+    });
+
+    // Border Action
+    Button borderBtn = new Button("Frame");
+    borderBtn.setStyle(btnStyle.replace("#007AFF", "#34C759")); // iOS Green
+    borderBtn.setOnAction(e -> {
+        java.awt.image.BufferedImage bimg = fxToBufferedImage(editPreview.getImage());
+        editPreview.setImage(bufferedToFxImage(dip_basic.Border.addBorder(bimg, 25)));
+    });
+
+    // Brightness Slider Area
+    VBox sliderBox = new VBox(8);
+    sliderBox.setAlignment(Pos.CENTER);
+    Label sliderLabel = new Label("Brightness");
+    sliderLabel.setStyle("-fx-font-weight: bold; -fx-text-fill: #8E8E93;");
+    
+    Slider brightSlider = new Slider(-100, 100, 0);
+    brightSlider.setPrefWidth(180);
+    // Real-time update (Optional: change to setOnMouseReleased for performance)
+    brightSlider.valueProperty().addListener((obs, oldVal, newVal) -> {
+        java.awt.image.BufferedImage bimg = fxToBufferedImage(mainImageView.getImage()); // Always process from original
+        editPreview.setImage(bufferedToFxImage(dip_basic.BrightnessContrast.adjustBrightness(bimg, newVal.intValue())));
+    });
+
+    sliderBox.getChildren().addAll(sliderLabel, brightSlider);
+    controlPanel.getChildren().addAll(grayBtn, borderBtn, sliderBox);
+
+    // Bottom Navigation
+    Button resetBtn = new Button("Reset");
+    resetBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: #FF3B30; -fx-font-weight: bold;");
+    resetBtn.setOnAction(e -> editPreview.setImage(mainImageView.getImage()));
+
+    layout.getChildren().addAll(title, imageFrame, controlPanel, resetBtn);
+    root.setCenter(layout);
+}
+
     private void openImageFolder() {
         DirectoryChooser chooser = new DirectoryChooser();
         chooser.setTitle("Select Image Folder");
@@ -433,4 +610,11 @@ public class MainUI {
         alert.setContentText(message);
         alert.showAndWait();
     }
+
+    private java.awt.image.BufferedImage fxToBufferedImage(Image img) {
+    return javafx.embed.swing.SwingFXUtils.fromFXImage(img, null);    }
+
+    private Image bufferedToFxImage(java.awt.image.BufferedImage bimg) {
+    return javafx.embed.swing.SwingFXUtils.toFXImage(bimg, null);}
 }
+
