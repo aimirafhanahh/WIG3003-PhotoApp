@@ -11,10 +11,16 @@ import javafx.stage.DirectoryChooser;
 import javafx.stage.Stage;
 import repository.AnnotationManager;
 import repository.ImageModel;
-
+import java.awt.image.BufferedImage;
+import javax.imageio.ImageIO;
+import javafx.embed.swing.SwingFXUtils;
+import multimedia.MosaicGenerator;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
+import javafx.util.Duration;
 
 public class MainUI {
 
@@ -109,15 +115,9 @@ public class MainUI {
                 "Resize, rotate, translate, and object extraction tools will be connected here."
         ));
 
-        mosaicBtn.setOnAction(e -> showModulePage(
-                "🖼️ Mosaic Generator",
-                "Create photo mosaics using selected images."
-        ));
+        mosaicBtn.setOnAction(e -> showMosaicPage());
 
-        videoBtn.setOnAction(e -> showModulePage(
-                "🎬 Video Creator",
-                "Create video slideshow with text and graphic overlays."
-        ));
+        videoBtn.setOnAction(e -> showVideoPage());
 
         shareBtn.setOnAction(e -> showModulePage(
                 "📤 Share / Export",
@@ -433,4 +433,181 @@ public class MainUI {
         alert.setContentText(message);
         alert.showAndWait();
     }
+
+private void showMosaicPage() {
+    VBox layout = new VBox(15);
+    layout.setPadding(new Insets(20));
+    layout.setAlignment(Pos.CENTER);
+
+    Button generateBtn = new Button("Generate Mosaic");
+
+    ImageView mosaicView = new ImageView();
+    mosaicView.setFitWidth(600);
+    mosaicView.setPreserveRatio(true);
+
+    generateBtn.setOnAction(e -> {
+        try {
+            List<BufferedImage> bufferedImages = new ArrayList<>();
+
+            for (ImageModel img : imageList) {
+                BufferedImage bi = javax.imageio.ImageIO.read(new File(img.getFilePath()));
+                bufferedImages.add(bi);
+            }
+
+            BufferedImage mosaic = MosaicGenerator.createMosaic(bufferedImages, 4, 100);
+
+            Image fxImage = javafx.embed.swing.SwingFXUtils.toFXImage(mosaic, null);
+            mosaicView.setImage(fxImage);
+
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+    });
+
+    layout.getChildren().addAll(generateBtn, mosaicView);
+    root.setCenter(layout);
+}
+
+private void showVideoPage() {
+    VBox layout = new VBox(15);
+    layout.setPadding(new Insets(20));
+    layout.setAlignment(Pos.CENTER);
+    layout.setStyle("-fx-background-color: #fafafa;");
+
+    Label title = new Label("🎬 Video Slideshow Creator");
+    title.setStyle(
+            "-fx-font-size: 26px;" +
+            "-fx-font-weight: bold;" +
+            "-fx-text-fill: #2c3e50;"
+    );
+
+    ImageView slideshowView = new ImageView();
+    slideshowView.setFitWidth(650);
+    slideshowView.setFitHeight(430);
+    slideshowView.setPreserveRatio(true);
+
+    Label overlayText = new Label("My Photo Story");
+    overlayText.setStyle(
+            "-fx-font-size: 28px;" +
+            "-fx-font-weight: bold;" +
+            "-fx-text-fill: white;" +
+            "-fx-background-color: rgba(0,0,0,0.5);" +
+            "-fx-padding: 10;" +
+            "-fx-background-radius: 8;"
+    );
+
+    StackPane videoFrame = new StackPane(slideshowView, overlayText);
+    StackPane.setAlignment(overlayText, Pos.BOTTOM_CENTER);
+    StackPane.setMargin(overlayText, new Insets(20));
+    videoFrame.setPrefSize(700, 460);
+    videoFrame.setStyle(
+            "-fx-background-color: #222222;" +
+            "-fx-background-radius: 12;" +
+            "-fx-padding: 15;"
+    );
+
+    TextField overlayInput = new TextField("My Photo Story");
+    overlayInput.setPromptText("Enter text overlay...");
+    overlayInput.setMaxWidth(400);
+
+    overlayInput.textProperty().addListener((obs, oldValue, newValue) -> {
+        overlayText.setText(newValue);
+    });
+
+    final int[] currentIndex = {0};
+    final Timeline[] timeline = new Timeline[1];
+
+    Button playBtn = new Button("▶ Play");
+    Button pauseBtn = new Button("⏸ Pause");
+    Button restartBtn = new Button("🔁 Restart");
+    Button prevBtn = new Button("⬅ Previous");
+    Button nextBtn = new Button("Next ➡");
+
+    playBtn.setOnAction(e -> {
+        if (imageList.isEmpty()) {
+            showAlert("Please open an image folder first.");
+            return;
+        }
+
+        if (timeline[0] == null) {
+            timeline[0] = new Timeline(new KeyFrame(Duration.seconds(2), event -> {
+                Image img = new Image(new File(imageList.get(currentIndex[0]).getFilePath()).toURI().toString());
+                slideshowView.setImage(img);
+
+                currentIndex[0]++;
+
+                if (currentIndex[0] >= imageList.size()) {
+                    currentIndex[0] = 0;
+                }
+            }));
+
+            timeline[0].setCycleCount(Timeline.INDEFINITE);
+        }
+
+        timeline[0].play();
+    });
+
+    pauseBtn.setOnAction(e -> {
+        if (timeline[0] != null) {
+            timeline[0].pause();
+        }
+    });
+
+    restartBtn.setOnAction(e -> {
+        if (imageList.isEmpty()) {
+            showAlert("Please open an image folder first.");
+            return;
+        }
+
+        currentIndex[0] = 0;
+        Image img = new Image(new File(imageList.get(currentIndex[0]).getFilePath()).toURI().toString());
+        slideshowView.setImage(img);
+
+        if (timeline[0] != null) {
+            timeline[0].playFromStart();
+        }
+    });
+
+    prevBtn.setOnAction(e -> {
+        if (imageList.isEmpty()) {
+            showAlert("Please open an image folder first.");
+            return;
+        }
+
+        currentIndex[0]--;
+
+        if (currentIndex[0] < 0) {
+            currentIndex[0] = imageList.size() - 1;
+        }
+
+        Image img = new Image(new File(imageList.get(currentIndex[0]).getFilePath()).toURI().toString());
+        slideshowView.setImage(img);
+    });
+
+    nextBtn.setOnAction(e -> {
+        if (imageList.isEmpty()) {
+            showAlert("Please open an image folder first.");
+            return;
+        }
+
+        currentIndex[0]++;
+
+        if (currentIndex[0] >= imageList.size()) {
+            currentIndex[0] = 0;
+        }
+
+        Image img = new Image(new File(imageList.get(currentIndex[0]).getFilePath()).toURI().toString());
+        slideshowView.setImage(img);
+    });
+
+    HBox controls = new HBox(10, prevBtn, playBtn, pauseBtn, restartBtn, nextBtn);
+    controls.setAlignment(Pos.CENTER);
+
+    VBox overlayBox = new VBox(8, new Label("Text Overlay:"), overlayInput);
+    overlayBox.setAlignment(Pos.CENTER);
+
+    layout.getChildren().addAll(title, videoFrame, overlayBox, controls);
+
+    root.setCenter(layout);
+}
 }
