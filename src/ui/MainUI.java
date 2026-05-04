@@ -17,11 +17,14 @@ import javafx.scene.shape.Rectangle;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.Stage;
 import repository.AnnotationManager;
+import repository.DatabaseManager;
 import repository.ImageModel;
 
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+
+import integration.AppController;
 
 public class MainUI {
 
@@ -32,6 +35,7 @@ public class MainUI {
     private Label heartLabel;
     private Button themeToggle; // <--- ADD THIS LINE HERE
     private Label fileNameLabel;
+    private AppController controller = new AppController();
 
     private Stage stage;
     private AnnotationManager annotationManager;
@@ -43,7 +47,24 @@ public class MainUI {
         this.annotationManager = new AnnotationManager();
         this.imageList = new ArrayList<>();
 
+        DatabaseManager.initialize();
+
         createUI();
+
+        List<String> paths = DatabaseManager.getSavedPaths();
+    if (paths != null) {
+        for (String path : paths) {
+            File file = new File(path);
+            if (file.exists()) {
+                ImageModel imageModel = new ImageModel(file.getAbsolutePath());
+                // Link existing annotations if any
+                imageModel.setAnnotation(annotationManager.getAnnotation(file.getAbsolutePath()));
+                
+                imageList.add(imageModel);
+                addThumbnail(imageModel); 
+            }
+        }
+    }
     }
 
     public Parent getRoot() {
@@ -120,7 +141,13 @@ themeToggle.setOnAction(e -> {
         Button videoBtn = createNavButton("🎬 Video Creator");
         Button shareBtn = createNavButton("📤 Share / Export");
 
-        galleryBtn.setOnAction(e -> root.setCenter(createMainContent()));
+        galleryBtn.setOnAction(e -> {
+    // 1. Create the UI structure
+    root.setCenter(createMainContent()); 
+    
+    // 2. Immediately put the thumbnails back on the screen
+    refreshThumbnails(); 
+});
 
         editingBtn.setOnAction(e -> showEditingPage());
 
@@ -133,10 +160,14 @@ themeToggle.setOnAction(e -> {
                 "Create video slideshow with text and graphic overlays."
         ));
 
-        shareBtn.setOnAction(e -> showModulePage(
-                "📤 Share / Export",
-                "Export and share images or videos through Email or WhatsApp."
-        ));
+        shareBtn.setOnAction(e -> showSharePage());
+        
+        
+        
+        // (e -> showModulePage(
+        //         "📤 Share / Export",
+        //         "Export and share images or videos through Email or WhatsApp."
+        // ));
 
         VBox nav = new VBox(12,
                 menuTitle,
@@ -235,6 +266,25 @@ themeToggle.setOnAction(e -> {
         heartLabel = new Label("♥");
         heartLabel.setStyle("-fx-font-size: 42px; -fx-text-fill: red;");
         heartLabel.setVisible(false);
+
+        // --- ADD THIS LOGIC HERE ---
+    if (currentImage != null) {
+        // Reload the current image into the new ImageView
+        Image image = new Image(new File(currentImage.getFilePath()).toURI().toString());
+        mainImageView.setImage(image);
+        
+        // Restore the filename label
+        File file = new File(currentImage.getFilePath());
+        fileNameLabel.setText(file.getName());
+        
+        // Restore the heart/annotation status
+        heartLabel.setVisible(annotationManager.hasAnnotation(currentImage.getFilePath()));
+        
+        // Restore the text area content
+        if (annotationArea != null) {
+            annotationArea.setText(currentImage.getAnnotation());
+        }
+    }
 
         StackPane imageStack = new StackPane(mainImageView, heartLabel);
         StackPane.setAlignment(heartLabel, Pos.TOP_RIGHT);
@@ -634,30 +684,20 @@ private void showEditingPage() {
 }
 
     private void openImageFolder() {
-        DirectoryChooser chooser = new DirectoryChooser();
-        chooser.setTitle("Select Image Folder");
+    DirectoryChooser chooser = new DirectoryChooser();
+    chooser.setTitle("Select Image Folder");
+    File folder = chooser.showDialog(stage);
 
-        File folder = chooser.showDialog(stage);
+    if (folder == null) return;
 
-        if (folder == null) {
-            return;
-        }
-
-        imageList.clear();
-
-        if (thumbnailPane != null) {
-            thumbnailPane.getChildren().clear();
-        }
-
-        File[] files = folder.listFiles();
-
-        if (files == null) {
-            showAlert("No files found in this folder.");
-            return;
-        }
-
+    File[] files = folder.listFiles();
+    if (files != null) {
         for (File file : files) {
             if (isImageFile(file)) {
+                // Save to Database using your static method
+                DatabaseManager.savePath(file.getAbsolutePath());
+
+                // Load into UI
                 ImageModel imageModel = new ImageModel(file.getAbsolutePath());
                 imageModel.setAnnotation(annotationManager.getAnnotation(file.getAbsolutePath()));
 
@@ -665,11 +705,8 @@ private void showEditingPage() {
                 addThumbnail(imageModel);
             }
         }
-
-        if (imageList.isEmpty()) {
-            showAlert("No image files found. Please choose a folder with JPG or PNG images.");
-        }
     }
+}
 
     private void setupSliderDesign(Slider slider) {
     slider.setShowTickMarks(true);
@@ -826,6 +863,49 @@ private void applyLightMode() {
         themeToggle.setText("☀️");
         themeToggle.setStyle("-fx-background-color: transparent; -fx-font-size: 18px; -fx-text-fill: black;");
     }
+}
+
+private void showSharePage() {
+    VBox shareLayout = new VBox(20);
+    shareLayout.setAlignment(Pos.CENTER);
+    shareLayout.setPadding(new Insets(30));
+
+    Label title = new Label("📤 External Distribution");
+    title.setStyle("-fx-font-size: 24px; -fx-font-weight: bold;");
+
+    Label desc = new Label("Select a platform to share your current image:");
+    
+    // Create the Action Buttons
+    Button whatsappBtn = new Button("Share to WhatsApp");
+    Button emailBtn = new Button("Share via Email");
+    
+    // Style them (assuming you have a nav-button style)
+    whatsappBtn.getStyleClass().add("nav-button");
+    emailBtn.getStyleClass().add("nav-button");
+
+    // BRIDGE TO CONTROLLER
+    whatsappBtn.setOnAction(e -> {
+        if (currentImage != null) {
+            
+            // 2. Show the instructions clearly
+            Alert instructions = new Alert(Alert.AlertType.INFORMATION);
+            instructions.setTitle("WhatsApp Sharing Instructions");
+            instructions.setHeaderText("Image Copied to Clipboard!");
+            instructions.setContentText(
+                "1. WhatsApp Web will now open in your browser.\n" +
+                "2. Select the contact you want to share with.\n" +
+                "3. Click on the message box and press CTRL + V to paste the image.\n"
+            );
+            instructions.showAndWait();
+
+            controller.handleWhatsAppShare(currentImage);
+        }
+    });
+
+    shareLayout.getChildren().addAll(title, desc, whatsappBtn, emailBtn);
+    
+    // Set this as the center of your main layout
+    root.setCenter(shareLayout);
 }
 
 // --- PUT THIS AT THE BOTTOM OF YOUR CLASS ---
