@@ -10,6 +10,9 @@ import javafx.scene.Parent;
 import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
+import javafx.util.Duration;
 
 import javafx.scene.layout.*;
 import javafx.scene.shape.Rectangle;
@@ -25,6 +28,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 import integration.AppController;
+import java.awt.image.BufferedImage;
+import javax.imageio.ImageIO;
+import javafx.embed.swing.SwingFXUtils;
+import multimedia.MosaicGenerator;
 
 public class MainUI {
 
@@ -41,6 +48,7 @@ public class MainUI {
     private AnnotationManager annotationManager;
     private ImageModel currentImage;
     private List<ImageModel> imageList;
+    private String currentSection = "gallery";
 
     public MainUI(Stage stage) {
         this.stage = stage;
@@ -78,28 +86,22 @@ public class MainUI {
         root.setLeft(createNavigationPanel());
         root.setCenter(createMainContent());
 
-        root.setStyle("-fx-background-color: #fafafa;");
-    }
+root.setStyle("-fx-background-color: linear-gradient(to bottom right, #f8fafc, #e5e7eb);");      }
 
     private HBox createTopBar() {
     // 1. Setup the Open Folder Button
     Button openFolderButton = new Button("Open Folder");
-    openFolderButton.setStyle(
-            "-fx-background-color: #3498db;" +
-            "-fx-text-fill: white;" +
-            "-fx-font-size: 14px;" +
-            "-fx-background-radius: 8;" +
-            "-fx-padding: 8 15;"
-    );
+    openFolderButton.setStyle(primaryButtonStyle());
     openFolderButton.setOnAction(e -> openImageFolder());
 
     // 2. Setup the Title Label
     Label title = new Label("Photo Repository System");
-    title.setStyle(
-            "-fx-font-size: 22px;" +
-            "-fx-font-weight: bold;" +
-            "-fx-text-fill: #2c3e50;"
-    );
+   title.setStyle(
+    "-fx-font-size: 24px;" +
+    "-fx-font-weight: bold;" +
+    "-fx-text-fill: #2e7d32;"
+);
+
 
   // REMOVE "Button" from the start. Just use the variable name.
     // Inside createTopBar()
@@ -141,24 +143,19 @@ themeToggle.setOnAction(e -> {
         Button videoBtn = createNavButton("🎬 Video Creator");
         Button shareBtn = createNavButton("📤 Share / Export");
 
-        galleryBtn.setOnAction(e -> {
-    // 1. Create the UI structure
-    root.setCenter(createMainContent()); 
-    
-    // 2. Immediately put the thumbnails back on the screen
-    refreshThumbnails(); 
+       galleryBtn.setOnAction(e -> {
+    currentSection = "gallery";
+    root.setCenter(createMainContent());
+    refreshThumbnails();
 });
 
         editingBtn.setOnAction(e -> showEditingPage());
 
         objectBtn.setOnAction(e -> showObjectTransformPage());
 
-        //mosaicBtn.setOnAction(e -> showObjectExtractionPage()); // Using Object Extraction here
+        mosaicBtn.setOnAction(e -> showMosaicPage());
 
-        videoBtn.setOnAction(e -> showModulePage(
-                "🎬 Video Creator",
-                "Create video slideshow with text and graphic overlays."
-        ));
+        videoBtn.setOnAction(e -> showVideoPage());
 
         shareBtn.setOnAction(e -> showSharePage());
         
@@ -181,52 +178,61 @@ themeToggle.setOnAction(e -> {
 
         nav.setPadding(new Insets(20));
         nav.setPrefWidth(230);
-        nav.setStyle("-fx-background-color: #2c3e50;");
+     nav.setStyle(
+        "-fx-background-color: linear-gradient(to bottom, #111827, #1f2937);" +
+        "-fx-border-color: #374151;" +
+        "-fx-border-width: 0 1 0 0;"
+);
 
         return nav;
     }
 
-    private Button createNavButton(String text) {
-        Button button = new Button(text);
+  private Button createNavButton(String text) {
+    Button button = new Button(text);
 
-        button.setMaxWidth(Double.MAX_VALUE);
-        button.setPrefHeight(45);
+    button.setMaxWidth(Double.MAX_VALUE);
+    button.setPrefHeight(46);
 
-        String normalStyle =
-                "-fx-background-color: transparent;" +
-                "-fx-text-fill: white;" +
-                "-fx-font-size: 14px;" +
-                "-fx-alignment: CENTER_LEFT;" +
-                "-fx-padding: 10;" +
-                "-fx-background-radius: 8;";
+    String normalStyle =
+            "-fx-background-color: transparent;" +
+            "-fx-text-fill: #e5e7eb;" +
+            "-fx-font-size: 14px;" +
+            "-fx-font-weight: 600;" +
+            "-fx-alignment: CENTER_LEFT;" +
+            "-fx-padding: 12 16;" +
+            "-fx-background-radius: 12;";
 
-        String hoverStyle =
-                "-fx-background-color: #34495e;" +
-                "-fx-text-fill: white;" +
-                "-fx-font-size: 14px;" +
-                "-fx-alignment: CENTER_LEFT;" +
-                "-fx-padding: 10;" +
-                "-fx-background-radius: 8;";
+    String hoverStyle =
+            "-fx-background-color: #374151;" +
+            "-fx-text-fill: white;" +
+            "-fx-font-size: 14px;" +
+            "-fx-font-weight: bold;" +
+            "-fx-alignment: CENTER_LEFT;" +
+            "-fx-padding: 12 16;" +
+            "-fx-background-radius: 12;";
 
-        button.setStyle(normalStyle);
+    button.setStyle(normalStyle);
 
-        button.setOnMouseEntered(e -> button.setStyle(hoverStyle));
-        button.setOnMouseExited(e -> button.setStyle(normalStyle));
+    button.setOnMouseEntered(e -> button.setStyle(hoverStyle));
+    button.setOnMouseExited(e -> button.setStyle(normalStyle));
 
-        return button;
-    }
+    return button;
+}
 
     private BorderPane createMainContent() {
         BorderPane content = new BorderPane();
+        content.setPadding(new Insets(18));
+content.setStyle(
+        "-fx-background-color: transparent;"
+);
 
         Label galleryTitle = new Label("📂 Image Gallery");
-        galleryTitle.setStyle(
-                "-fx-font-size: 18px;" +
-                "-fx-font-weight: bold;" +
-                "-fx-padding: 10;" +
-                "-fx-text-fill: #2c3e50;"
-        );
-
+      galleryTitle.setStyle(
+        "-fx-font-size: 20px;" +
+        "-fx-font-weight: bold;" +
+        "-fx-padding: 0 0 14 0;" +
+        "-fx-text-fill: #111827;"
+);
         content.setTop(galleryTitle);
         content.setLeft(createThumbnailSection());
         content.setCenter(createImagePreviewSection());
@@ -245,23 +251,30 @@ themeToggle.setOnAction(e -> {
         ScrollPane scrollPane = new ScrollPane(thumbnailPane);
         scrollPane.setPrefWidth(250);
         scrollPane.setFitToWidth(true);
-        scrollPane.setStyle("-fx-background-color: white;");
-
+      scrollPane.setStyle(cardStyle());
         return scrollPane;
     }
 
     private StackPane createImagePreviewSection() {
         mainImageView = new ImageView();
+        mainImageView.setStyle(
+    "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.5), 15, 0, 0, 5);"
+);
+
+mainImageView.setPreserveRatio(true);
+mainImageView.setFitWidth(600);
+mainImageView.setFitHeight(500);
         mainImageView.setPreserveRatio(true);
         mainImageView.setFitWidth(600);
         mainImageView.setFitHeight(500);
+        
 
         fileNameLabel = new Label("📷 No image selected");
-        fileNameLabel.setStyle(
-                "-fx-font-size: 16px;" +
-                "-fx-font-weight: bold;" +
-                "-fx-text-fill: #2c3e50;"
-        );
+fileNameLabel.setStyle(
+        "-fx-font-size: 16px;" +
+        "-fx-font-weight: bold;" +
+        "-fx-text-fill: white;"
+);
 
         heartLabel = new Label("♥");
         heartLabel.setStyle("-fx-font-size: 42px; -fx-text-fill: red;");
@@ -295,8 +308,7 @@ themeToggle.setOnAction(e -> {
         centerBox.setAlignment(Pos.TOP_CENTER);
 
         StackPane previewPane = new StackPane(centerBox);
-        previewPane.setStyle("-fx-background-color: #fafafa;");
-
+previewPane.setStyle(darkCardStyle());
         return previewPane;
     }
 
@@ -314,25 +326,12 @@ themeToggle.setOnAction(e -> {
         annotationArea.setPrefHeight(250);
 
         Button saveButton = new Button("Save Annotation");
-        saveButton.setMaxWidth(Double.MAX_VALUE);
-        saveButton.setStyle(
-                "-fx-background-color: #27ae60;" +
-                "-fx-text-fill: white;" +
-                "-fx-font-size: 14px;" +
-                "-fx-background-radius: 8;" +
-                "-fx-padding: 8 15;"
-        );
+      
 
-        saveButton.setOnAction(e -> saveAnnotation());
-
-        VBox rightBox = new VBox(10, annotationLabel, annotationArea, saveButton);
-        rightBox.setPadding(new Insets(15));
-        rightBox.setPrefWidth(280);
-        rightBox.setStyle(
-                "-fx-background-color: white;" +
-                "-fx-border-color: #e0e0e0;" +
-                "-fx-border-width: 0 0 0 1;"
-        );
+VBox rightBox = new VBox(10, annotationLabel, annotationArea, saveButton);       
+      rightBox.setPadding(new Insets(15));
+      rightBox.setPrefWidth(280);
+      rightBox.setStyle(cardStyle());
 
         return rightBox;
     }
@@ -345,10 +344,10 @@ themeToggle.setOnAction(e -> {
 
         Label title = new Label(titleText);
         title.setStyle(
-                "-fx-font-size: 32px;" +
-                "-fx-font-weight: bold;" +
-                "-fx-text-fill: #2c3e50;"
-        );
+        "-fx-font-size: 24px;" +
+        "-fx-font-weight: bold;" +
+        "-fx-text-fill: #111827;"
+);
 
         Label description = new Label(descriptionText);
         description.setWrapText(true);
@@ -370,6 +369,7 @@ themeToggle.setOnAction(e -> {
     }
 
   private void showObjectTransformPage() {
+    currentSection = "object";
     if (currentImage == null) {
         showAlert("Please select an image first!");
         return;
@@ -493,26 +493,59 @@ themeToggle.setOnAction(e -> {
     extractBtn.setMaxWidth(Double.MAX_VALUE);
     extractBtn.setStyle("-fx-background-color: #34C759; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 10; -fx-padding: 12;");
     
-    extractBtn.setOnAction(e -> {
-        if (this.pickedColor == null) {
-            showAlert("Click the image to pick a color first!");
-            return;
-        }
-        try {
-            java.awt.image.BufferedImage original = fxToBufferedImage(mainImageView.getImage());
-            
-            // --- CALLING THE TEAMMATE'S CLASS ---
-            java.awt.image.BufferedImage extracted = dip_advanced.ObjectExtractor.extractByColor(
-                original, this.pickedColor, (int)toleranceS.getValue()
-            );
-            
-            File outputFile = new File("extracted_" + System.currentTimeMillis() + ".png");
-            javax.imageio.ImageIO.write(extracted, "png", outputFile);
-            showAlert("Saved: " + outputFile.getName());
-        } catch (Exception ex) {
-            ex.printStackTrace();
-        }
-    });
+   extractBtn.setOnAction(e -> {
+    if (this.pickedColor == null) {
+        showAlert("Click the image to pick a color first!");
+        return;
+    }
+
+    try {
+        BufferedImage original = fxToBufferedImage(mainImageView.getImage());
+
+        BufferedImage extracted = dip_advanced.ObjectExtractor.extractByColor(
+                original,
+                this.pickedColor,
+                (int) toleranceS.getValue()
+        );
+
+        Image fxExtracted = SwingFXUtils.toFXImage(extracted, null);
+
+        Stage previewStage = new Stage();
+        previewStage.setTitle("Object Extraction Preview");
+
+        ImageView previewImage = new ImageView(fxExtracted);
+        previewImage.setFitWidth(500);
+        previewImage.setFitHeight(400);
+        previewImage.setPreserveRatio(true);
+
+        Button saveExtractedBtn = new Button("Save Extracted Object");
+        saveExtractedBtn.setStyle(greenButtonStyle());
+
+        saveExtractedBtn.setOnAction(saveEvent -> {
+            try {
+                File outputFile = new File("extracted_" + System.currentTimeMillis() + ".png");
+                ImageIO.write(extracted, "png", outputFile);
+                showAlert("Saved: " + outputFile.getName());
+                previewStage.close();
+            } catch (Exception ex) {
+                ex.printStackTrace();
+                showAlert("Failed to save extracted object.");
+            }
+        });
+
+        VBox previewLayout = new VBox(15, previewImage, saveExtractedBtn);
+        previewLayout.setPadding(new Insets(20));
+        previewLayout.setAlignment(Pos.CENTER);
+        previewLayout.setStyle("-fx-background-color: #111827;");
+
+        previewStage.setScene(new javafx.scene.Scene(previewLayout, 600, 520));
+        previewStage.show();
+
+    } catch (Exception ex) {
+        ex.printStackTrace();
+        showAlert("Failed to extract object.");
+    }
+});
 
     // Assemble Sidebar
     controlSideBar.getChildren().addAll(
@@ -533,8 +566,9 @@ themeToggle.setOnAction(e -> {
     );
 
     mainLayout.getChildren().addAll(imageSection, controlSideBar);
-    root.setCenter(mainLayout);
-}
+HBox page = new HBox(18, createGalleryMiniList(), mainLayout);
+page.setPadding(new Insets(18));
+root.setCenter(page);}
 
 private java.awt.Color pickedColor = java.awt.Color.WHITE;
 
@@ -542,6 +576,7 @@ private java.awt.Color pickedColor = java.awt.Color.WHITE;
 
 
 private void showEditingPage() {
+    currentSection = "editing";
     if (currentImage == null) {
         showAlert("Please select an image from the Gallery first!");
         return;
@@ -680,9 +715,63 @@ private void showEditingPage() {
     );
 
     mainLayout.getChildren().addAll(imageSection, controlSideBar);
-    root.setCenter(mainLayout);
+    HBox page = new HBox(18, createGalleryMiniList(), mainLayout);
+page.setPadding(new Insets(18));
+root.setCenter(page);
 }
+private ScrollPane createGalleryMiniList() {
+    FlowPane miniPane = new FlowPane();
+    miniPane.setPadding(new Insets(10));
+    miniPane.setHgap(8);
+    miniPane.setVgap(8);
+    miniPane.setPrefWrapLength(220);
 
+    for (ImageModel model : imageList) {
+        Image img = new Image(new File(model.getFilePath()).toURI().toString());
+
+        ImageView thumb = new ImageView(img);
+        thumb.setFitWidth(90);
+        thumb.setFitHeight(70);
+        thumb.setPreserveRatio(true);
+
+        Label favMark = new Label("♥");
+        favMark.setStyle("-fx-text-fill: red; -fx-font-size: 18px;");
+        favMark.setVisible(annotationManager.hasAnnotation(model.getFilePath()));
+
+        StackPane card = new StackPane(thumb, favMark);
+        StackPane.setAlignment(favMark, Pos.TOP_RIGHT);
+
+        card.setStyle(
+                "-fx-background-color: #1f2937;" +
+                "-fx-background-radius: 10;" +
+                "-fx-padding: 6;" +
+                "-fx-cursor: hand;"
+        );
+
+       card.setOnMouseClicked(e -> {
+    displayImage(model);
+
+    if (currentSection.equals("editing")) {
+        showEditingPage();
+    } else if (currentSection.equals("object")) {
+        showObjectTransformPage();
+    } else if (currentSection.equals("mosaic")) {
+        showMosaicPage();
+    } else if (currentSection.equals("video")) {
+        showVideoPage();
+    }
+});
+
+        miniPane.getChildren().add(card);
+    }
+
+    ScrollPane scroll = new ScrollPane(miniPane);
+    scroll.setPrefWidth(250);
+    scroll.setFitToWidth(true);
+    scroll.setStyle(darkCardStyle());
+
+    return scroll;
+}
     private void openImageFolder() {
     DirectoryChooser chooser = new DirectoryChooser();
     chooser.setTitle("Select Image Folder");
@@ -742,11 +831,13 @@ private void showEditingPage() {
         StackPane.setAlignment(heart, Pos.TOP_RIGHT);
 
         thumbnailStack.setStyle(
-                "-fx-border-color: #dcdcdc;" +
-                "-fx-border-radius: 6;" +
-                "-fx-padding: 5;" +
-                "-fx-background-color: white;"
-        );
+        "-fx-background-color: #f9fafb;" +
+        "-fx-background-radius: 12;" +
+        "-fx-border-color: #e5e7eb;" +
+        "-fx-border-radius: 12;" +
+        "-fx-padding: 6;" +
+        "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.10), 6, 0, 0, 2);"
+);
 
         thumbnailStack.setOnMouseClicked(e -> displayImage(imageModel));
 
@@ -822,7 +913,11 @@ private void showEditingPage() {
     
     // 2. Top Bar
     HBox topBar = (HBox) root.getTop();
-    topBar.setStyle("-fx-background-color: #000000; -fx-border-color: #2F3336; -fx-border-width: 0 0 1 0;");
+topBar.setStyle(
+        "-fx-background-color: rgba(255,255,255,0.95);" +
+        "-fx-border-color: #e5e7eb;" +
+        "-fx-border-width: 0 0 1 0;"
+);
     topBar.getChildren().forEach(n -> {
         if (n instanceof Label) n.setStyle("-fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 22px;");
     });
@@ -853,11 +948,13 @@ private void showEditingPage() {
 
 private void applyLightMode() {
     // Restore the standard light background
-    root.setStyle("-fx-background-color: #fafafa;");
-    
+root.setStyle("-fx-background-color: #eef2f3;");    
     HBox topBar = (HBox) root.getTop();
-    topBar.setStyle("-fx-background-color: white; -fx-border-color: #e0e0e0; -fx-border-width: 0 0 1 0;");
-    
+topBar.setStyle(
+        "-fx-background-color: #ffffff;" +
+        "-fx-border-color: #dcdcdc;" +
+        "-fx-border-width: 0 0 1 0;"
+);
     // Update the button icon visibility
     if (themeToggle != null) {
         themeToggle.setText("☀️");
@@ -946,5 +1043,546 @@ private java.awt.image.BufferedImage extractObjectBySimilarity(java.awt.image.Bu
     }
     return output;
 }
+private void showMosaicPage() {
+    currentSection = "mosaic";
+    VBox layout = new VBox(18);
+    layout.setPadding(new Insets(22));
+    layout.setAlignment(Pos.TOP_CENTER);
+    layout.setStyle(cardStyle());
+
+    Label title = new Label("🖼️ Shape Mosaic Studio");
+    title.setStyle("-fx-font-size: 28px; -fx-font-weight: bold; -fx-text-fill: #111827;");
+
+    Label subtitle = new Label("Create a large shape using many small photo tiles from your collection.");
+    subtitle.setStyle("-fx-font-size: 13px; -fx-text-fill: #6b7280;");
+
+    ComboBox<String> shapeChoice = new ComboBox<>();
+    shapeChoice.getItems().addAll("Circle", "Heart", "Diamond", "Hexagon");
+    shapeChoice.setValue("Hexagon");
+
+    TextField tileSizeField = new TextField("60");
+    tileSizeField.setMaxWidth(90);
+
+    TextField canvasSizeField = new TextField("720");
+    canvasSizeField.setMaxWidth(90);
+
+    CheckBox useAnnotatedOnly = new CheckBox("Use favourite/annotated images only");
+    CheckBox shuffleImages = new CheckBox("Shuffle tiles");
+
+    HBox settings = new HBox(12,
+            new Label("Shape:"), shapeChoice,
+            new Label("Tile Size:"), tileSizeField,
+            new Label("Canvas:"), canvasSizeField
+    );
+    settings.setAlignment(Pos.CENTER);
+
+    HBox options = new HBox(20, useAnnotatedOnly, shuffleImages);
+    options.setAlignment(Pos.CENTER);
+
+    ImageView mosaicView = new ImageView();
+    mosaicView.setFitWidth(720);
+    mosaicView.setFitHeight(500);
+    mosaicView.setPreserveRatio(true);
+
+    StackPane previewBox = new StackPane(mosaicView);
+    previewBox.setPrefSize(760, 520);
+    previewBox.setStyle(
+            "-fx-background-color: #111827;" +
+            "-fx-background-radius: 18;" +
+            "-fx-padding: 18;"
+    );
+
+    final BufferedImage[] currentMosaic = new BufferedImage[1];
+
+    Button generateBtn = new Button("✨ Generate Shape Mosaic");
+    Button saveBtn = new Button("💾 Save Mosaic");
+    Button clearBtn = new Button("🗑 Clear");
+
+    generateBtn.setStyle(primaryButtonStyle());
+    saveBtn.setStyle(greenButtonStyle());
+    clearBtn.setStyle(
+            "-fx-background-color: #ef4444;" +
+            "-fx-text-fill: white;" +
+            "-fx-font-weight: bold;" +
+            "-fx-background-radius: 10;" +
+            "-fx-padding: 10 18;"
+    );
+
+    generateBtn.setOnAction(e -> {
+        if (imageList.isEmpty()) {
+            showAlert("Please open an image folder first.");
+            return;
+        }
+
+        try {
+            int tileSize = Integer.parseInt(tileSizeField.getText());
+            int canvasSize = Integer.parseInt(canvasSizeField.getText());
+
+            List<ImageModel> selectedModels = new ArrayList<>();
+
+            for (ImageModel model : imageList) {
+                if (!useAnnotatedOnly.isSelected() || annotationManager.hasAnnotation(model.getFilePath())) {
+                    selectedModels.add(model);
+                }
+            }
+
+            if (selectedModels.isEmpty()) {
+                showAlert("No images available for mosaic.");
+                return;
+            }
+
+            if (shuffleImages.isSelected()) {
+                java.util.Collections.shuffle(selectedModels);
+            }
+
+            List<BufferedImage> tiles = new ArrayList<>();
+
+            for (ImageModel model : selectedModels) {
+                BufferedImage img = ImageIO.read(new File(model.getFilePath()));
+                if (img != null) {
+                    tiles.add(img);
+                }
+            }
+
+            currentMosaic[0] = createShapeMosaic(tiles, shapeChoice.getValue(), canvasSize, tileSize);
+            mosaicView.setImage(SwingFXUtils.toFXImage(currentMosaic[0], null));
+
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            showAlert("Failed to generate mosaic.");
+        }
+    });
+
+    saveBtn.setOnAction(e -> {
+        if (currentMosaic[0] == null) {
+            showAlert("Please generate mosaic first.");
+            return;
+        }
+
+        try {
+            File output = new File("shape_mosaic_" + System.currentTimeMillis() + ".png");
+            ImageIO.write(currentMosaic[0], "png", output);
+            showAlert("Mosaic saved as: " + output.getName());
+        } catch (Exception ex) {
+            showAlert("Failed to save mosaic.");
+        }
+    });
+
+    clearBtn.setOnAction(e -> {
+        mosaicView.setImage(null);
+        currentMosaic[0] = null;
+    });
+
+    HBox buttons = new HBox(12, generateBtn, saveBtn, clearBtn);
+    buttons.setAlignment(Pos.CENTER);
+
+    layout.getChildren().addAll(title, subtitle, settings, options, buttons, previewBox);
+
+HBox page = new HBox(18, createGalleryMiniList(), layout);
+    page.setPadding(new Insets(18));
+    root.setCenter(page);
 }
+private BufferedImage createShapeMosaic(List<BufferedImage> tiles, String shape, int canvasSize, int tileSize) {
+    BufferedImage output = new BufferedImage(canvasSize, canvasSize, BufferedImage.TYPE_INT_ARGB);
+    java.awt.Graphics2D g = output.createGraphics();
+
+    g.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING, java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+
+    // Base background full frame
+    g.setColor(new java.awt.Color(230, 235, 240));
+    g.fillRect(0, 0, canvasSize, canvasSize);
+
+    int tileIndex = 0;
+
+    for (int y = 0; y < canvasSize; y += tileSize) {
+        for (int x = 0; x < canvasSize; x += tileSize) {
+
+            BufferedImage tile = tiles.get(tileIndex % tiles.size());
+            java.awt.Image scaled = tile.getScaledInstance(tileSize, tileSize, java.awt.Image.SCALE_SMOOTH);
+
+            int centerX = x + tileSize / 2;
+            int centerY = y + tileSize / 2;
+
+            if (isPointInsideShape(centerX, centerY, canvasSize, shape)) {
+                // Inside shape = full bright photo tiles
+                g.drawImage(scaled, x, y, null);
+            } else {
+                // Outside shape = faded base tiles
+                java.awt.Graphics2D tileG = (java.awt.Graphics2D) g.create();
+                tileG.setComposite(java.awt.AlphaComposite.getInstance(java.awt.AlphaComposite.SRC_OVER, 0.18f));
+                tileG.drawImage(scaled, x, y, null);
+                tileG.dispose();
+
+                // soft white overlay
+                g.setColor(new java.awt.Color(255, 255, 255, 130));
+                g.fillRect(x, y, tileSize, tileSize);
+            }
+
+            tileIndex++;
+        }
+    }
+
+  
+    g.dispose();
+    return output;
+}
+
+private boolean isPointInsideShape(int x, int y, int size, String shape) {
+    double cx = size / 2.0;
+    double cy = size / 2.0;
+
+    double dx = (x - cx) / cx;
+    double dy = (y - cy) / cy;
+
+    switch (shape) {
+        case "Circle":
+            return dx * dx + dy * dy <= 0.85;
+
+        case "Diamond":
+            return Math.abs(dx) + Math.abs(dy) <= 1.1;
+
+        case "Hexagon":
+            return Math.abs(dx) <= 0.9 &&
+                   Math.abs(dy) <= 0.75 &&
+                   Math.abs(dx) * 0.6 + Math.abs(dy) <= 0.95;
+
+        case "Heart":
+            double heartX = dx * 1.25;
+            double heartY = -dy * 1.25;
+            double formula = Math.pow(heartX * heartX + heartY * heartY - 1, 3)
+                    - heartX * heartX * Math.pow(heartY, 3);
+            return formula <= 0;
+
+        default:
+            return true;
+    }
+}
+
+private BufferedImage createSimpleMosaic(List<BufferedImage> images, int cols, int tileSize) {
+    int rows = (int) Math.ceil(images.size() / (double) cols);
+
+    BufferedImage mosaic = new BufferedImage(
+            cols * tileSize,
+            rows * tileSize,
+            BufferedImage.TYPE_INT_RGB
+    );
+
+    java.awt.Graphics2D g = mosaic.createGraphics();
+
+    int x = 0;
+    int y = 0;
+
+    for (BufferedImage img : images) {
+        java.awt.Image scaled = img.getScaledInstance(tileSize, tileSize, java.awt.Image.SCALE_SMOOTH);
+        g.drawImage(scaled, x, y, null);
+
+        x += tileSize;
+
+        if (x >= cols * tileSize) {
+            x = 0;
+            y += tileSize;
+        }
+    }
+
+    g.dispose();
+    return mosaic;
+}
+
+private void showVideoPage() {
+    currentSection = "video";
+    VBox layout = new VBox(18);
+    layout.setPadding(new Insets(22));
+    layout.setAlignment(Pos.TOP_CENTER);
+    layout.setStyle(cardStyle());
+
+    Label title = new Label("🎬 Video Story Creator");
+    title.setStyle("-fx-font-size: 28px; -fx-font-weight: bold; -fx-text-fill: #111827;");
+
+    Label subtitle = new Label("Build a slideshow video sequence from your favourite images.");
+    subtitle.setStyle("-fx-font-size: 13px; -fx-text-fill: #6b7280;");
+
+    List<ImageModel> favouriteImages = new ArrayList<>();
+    ListView<String> favouriteListView = new ListView<>();
+    favouriteListView.setPrefWidth(260);
+    favouriteListView.setPrefHeight(360);
+
+Button loadFavBtn = new Button("♥ Load Annotated Favourites");
+    loadFavBtn.setStyle(primaryButtonStyle());
+
+    ImageView videoView = new ImageView();
+    videoView.setFitWidth(680);
+    videoView.setFitHeight(390);
+    videoView.setPreserveRatio(true);
+
+    Label captionLabel = new Label("Caption will appear here");
+    captionLabel.setStyle(
+            "-fx-font-size: 22px;" +
+            "-fx-text-fill: white;" +
+            "-fx-background-color: rgba(0,0,0,0.55);" +
+            "-fx-padding: 10;" +
+            "-fx-background-radius: 10;"
+    );
+
+    StackPane videoPane = new StackPane(videoView, captionLabel);
+    StackPane.setAlignment(captionLabel, Pos.BOTTOM_CENTER);
+    StackPane.setMargin(captionLabel, new Insets(20));
+    videoPane.setStyle(
+            "-fx-background-color: #111827;" +
+            "-fx-background-radius: 18;" +
+            "-fx-padding: 18;" +
+            "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.25), 20, 0, 0, 8);"
+    );
+
+    TextField captionInput = new TextField();
+    captionInput.setPromptText("Caption for selected image...");
+    captionInput.setMaxWidth(420);
+
+    Slider durationSlider = new Slider(1, 6, 2);
+    durationSlider.setShowTickLabels(true);
+    durationSlider.setShowTickMarks(true);
+    durationSlider.setMajorTickUnit(1);
+    durationSlider.setMaxWidth(420);
+
+    Label durationLabel = new Label("Duration per image: 2 seconds");
+    durationLabel.setStyle("-fx-text-fill: #374151; -fx-font-weight: bold;");
+
+    durationSlider.valueProperty().addListener((obs, oldVal, newVal) -> {
+        durationLabel.setText("Duration per image: " + String.format("%.1f", newVal.doubleValue()) + " seconds");
+    });
+
+    final int[] index = {0};
+    final Timeline[] timeline = new Timeline[1];
+
+loadFavBtn.setOnAction(e -> {
+    favouriteImages.clear();
+    favouriteListView.getItems().clear();
+
+    for (ImageModel model : imageList) {
+        if (annotationManager.hasAnnotation(model.getFilePath())) {
+            favouriteImages.add(model);
+            favouriteListView.getItems().add("♥ " + new File(model.getFilePath()).getName());
+        }
+    }
+
+    if (favouriteImages.isEmpty()) {
+        showAlert("No favourite images yet. Add annotations in Gallery first.");
+    } else {
+        showAlert("Loaded " + favouriteImages.size() + " favourite images.");
+    }
+});
+    favouriteListView.getSelectionModel().selectedIndexProperty().addListener((obs, oldVal, newVal) -> {
+        int selectedIndex = newVal.intValue();
+
+        if (selectedIndex >= 0 && selectedIndex < favouriteImages.size()) {
+            index[0] = selectedIndex;
+
+            ImageModel selected = favouriteImages.get(selectedIndex);
+            videoView.setImage(new Image(new File(selected.getFilePath()).toURI().toString()));
+
+            String note = selected.getAnnotation();
+            captionLabel.setText(note == null || note.trim().isEmpty() ? "My Photo Story" : note);
+            captionInput.setText(captionLabel.getText());
+        }
+    });
+
+    Button saveCaptionBtn = new Button("💬 Save Caption");
+    saveCaptionBtn.setStyle(primaryButtonStyle());
+
+    saveCaptionBtn.setOnAction(e -> {
+        int selectedIndex = favouriteListView.getSelectionModel().getSelectedIndex();
+
+        if (selectedIndex < 0 || selectedIndex >= favouriteImages.size()) {
+            showAlert("Select an image from the favourite list first.");
+            return;
+        }
+
+        ImageModel selected = favouriteImages.get(selectedIndex);
+        selected.setAnnotation(captionInput.getText());
+        annotationManager.saveAnnotation(selected.getFilePath(), captionInput.getText());
+        captionLabel.setText(captionInput.getText());
+
+        showAlert("Caption saved for this image.");
+    });
+
+    Button playBtn = new Button("▶ Play");
+    Button pauseBtn = new Button("⏸ Pause");
+    Button restartBtn = new Button("🔁 Restart");
+    Button prevBtn = new Button("⬅ Previous");
+    Button nextBtn = new Button("Next ➡");
+
+    playBtn.setStyle(greenButtonStyle());
+    pauseBtn.setStyle(primaryButtonStyle());
+    restartBtn.setStyle(primaryButtonStyle());
+    prevBtn.setStyle(primaryButtonStyle());
+    nextBtn.setStyle(primaryButtonStyle());
+
+    Runnable showCurrentSlide = () -> {
+        if (favouriteImages.isEmpty()) {
+            return;
+        }
+
+        ImageModel current = favouriteImages.get(index[0]);
+
+        videoView.setImage(new Image(new File(current.getFilePath()).toURI().toString()));
+
+        String note = annotationManager.getAnnotation(current.getFilePath());
+        captionLabel.setText(note == null || note.trim().isEmpty() ? "My Photo Story" : note);
+
+        favouriteListView.getSelectionModel().select(index[0]);
+    };
+
+    playBtn.setOnAction(e -> {
+        if (favouriteImages.isEmpty()) {
+            showAlert("Please load favourite images first.");
+            return;
+        }
+
+        if (timeline[0] != null) {
+            timeline[0].stop();
+        }
+
+        timeline[0] = new Timeline(new KeyFrame(Duration.seconds(durationSlider.getValue()), event -> {
+            showCurrentSlide.run();
+
+            index[0]++;
+
+            if (index[0] >= favouriteImages.size()) {
+                index[0] = 0;
+            }
+        }));
+
+        timeline[0].setCycleCount(Timeline.INDEFINITE);
+        timeline[0].play();
+    });
+
+    pauseBtn.setOnAction(e -> {
+        if (timeline[0] != null) {
+            timeline[0].pause();
+        }
+    });
+
+    restartBtn.setOnAction(e -> {
+        index[0] = 0;
+        showCurrentSlide.run();
+
+        if (timeline[0] != null) {
+            timeline[0].playFromStart();
+        }
+    });
+
+    prevBtn.setOnAction(e -> {
+        if (favouriteImages.isEmpty()) {
+            showAlert("Please load favourite images first.");
+            return;
+        }
+
+        index[0]--;
+
+        if (index[0] < 0) {
+            index[0] = favouriteImages.size() - 1;
+        }
+
+        showCurrentSlide.run();
+    });
+
+    nextBtn.setOnAction(e -> {
+        if (favouriteImages.isEmpty()) {
+            showAlert("Please load favourite images first.");
+            return;
+        }
+
+        index[0]++;
+
+        if (index[0] >= favouriteImages.size()) {
+            index[0] = 0;
+        }
+
+        showCurrentSlide.run();
+    });
+
+    VBox leftControls = new VBox(12, loadFavBtn, new Label("Favourite Images:"), favouriteListView);
+    leftControls.setPadding(new Insets(12));
+    leftControls.setStyle(
+            "-fx-background-color: #f9fafb;" +
+            "-fx-background-radius: 16;"
+    );
+
+    HBox captionBox = new HBox(10, captionInput, saveCaptionBtn);
+    captionBox.setAlignment(Pos.CENTER);
+
+    HBox playbackControls = new HBox(10, prevBtn, playBtn, pauseBtn, restartBtn, nextBtn);
+    playbackControls.setAlignment(Pos.CENTER);
+
+    VBox videoArea = new VBox(14, videoPane, durationLabel, durationSlider, captionBox, playbackControls);
+    videoArea.setAlignment(Pos.CENTER);
+
+    HBox content = new HBox(18, leftControls, videoArea);
+    content.setAlignment(Pos.CENTER);
+
+    layout.getChildren().addAll(title, subtitle, content);
+
+HBox page = new HBox(18, createGalleryMiniList(), layout);
+    page.setPadding(new Insets(18));
+    root.setCenter(page);
+}
+private String primaryButtonStyle() {
+    return "-fx-background-color: #2563eb;" +
+           "-fx-text-fill: white;" +
+           "-fx-font-size: 14px;" +
+           "-fx-font-weight: bold;" +
+           "-fx-background-radius: 10;" +
+           "-fx-padding: 10 18;";
+}
+
+private String greenButtonStyle() {
+    return "-fx-background-color: #16a34a;" +
+           "-fx-text-fill: white;" +
+           "-fx-font-size: 14px;" +
+           "-fx-font-weight: bold;" +
+           "-fx-background-radius: 10;" +
+           "-fx-padding: 10 18;";
+}
+
+private String cardStyle() {
+    return "-fx-background-color: #ffffff;" +
+           "-fx-background-radius: 18;" +
+           "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.10), 18, 0, 0, 6);";
+}
+
+private String darkCardStyle() {
+    return "-fx-background-color: #111827;" +
+           "-fx-background-radius: 18;" +
+           "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.25), 20, 0, 0, 8);";
+}
+
+private VBox createMiniPreviewPanel() {
+    VBox panel = new VBox(12);
+    panel.setPadding(new Insets(18));
+    panel.setPrefWidth(260);
+    panel.setStyle(darkCardStyle());
+
+Label title = new Label("Image Preview");
+    title.setStyle("-fx-text-fill: white; -fx-font-size: 16px; -fx-font-weight: bold;");
+
+    ImageView preview = new ImageView();
+    preview.setFitWidth(220);
+    preview.setFitHeight(180);
+    preview.setPreserveRatio(true);
+
+    Label name = new Label("No image selected");
+    name.setWrapText(true);
+    name.setStyle("-fx-text-fill: #e5e7eb; -fx-font-size: 12px;");
+
+    if (currentImage != null) {
+        Image img = new Image(new File(currentImage.getFilePath()).toURI().toString());
+        preview.setImage(img);
+        name.setText(new File(currentImage.getFilePath()).getName());
+    }
+
+    panel.getChildren().addAll(title, preview, name);
+    return panel;
+}
+}
+
+
 
