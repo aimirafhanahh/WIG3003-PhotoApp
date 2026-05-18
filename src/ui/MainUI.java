@@ -12,6 +12,7 @@ import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
+import javafx.concurrent.Task;
 import javafx.util.Duration;
 
 import javafx.scene.layout.*;
@@ -23,6 +24,9 @@ import repository.AnnotationManager;
 import repository.DatabaseManager;
 import repository.ImageModel;
 
+import utils.EditAction;
+import utils.HistoryManager;
+
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
@@ -32,6 +36,7 @@ import java.awt.image.BufferedImage;
 import javax.imageio.ImageIO;
 import javafx.embed.swing.SwingFXUtils;
 import multimedia.MosaicGenerator;
+import java.io.File;
 
 public class MainUI {
 
@@ -40,9 +45,12 @@ public class MainUI {
     private ImageView mainImageView;
     private TextArea annotationArea;
     private Label heartLabel;
-    private Button themeToggle; // <--- ADD THIS LINE HERE
     private Label fileNameLabel;
+    private ImageView imageView;
+    private ImageView editPreview;
     private AppController controller = new AppController();
+    private javafx.scene.image.Image originalImage; 
+    private HistoryManager historyManager = new HistoryManager();
 
     private Stage stage;
     private AnnotationManager annotationManager;
@@ -88,45 +96,25 @@ public class MainUI {
 
 root.setStyle("-fx-background-color: linear-gradient(to bottom right, #f8fafc, #e5e7eb);");      }
 
-    private HBox createTopBar() {
-    // 1. Setup the Open Folder Button
-    Button openFolderButton = new Button("Open Folder");
-    openFolderButton.setStyle(primaryButtonStyle());
-    openFolderButton.setOnAction(e -> openImageFolder());
+private HBox createTopBar() {
+      // 1. Setup the Open Folder Button
+      Button openFolderButton = new Button("Open Folder");
+      openFolderButton.setStyle(primaryButtonStyle());
+      openFolderButton.setOnAction(e -> openImageFolder());
 
-    // 2. Setup the Title Label
-    Label title = new Label("Photo Repository System");
-   title.setStyle(
-    "-fx-font-size: 24px;" +
-    "-fx-font-weight: bold;" +
-    "-fx-text-fill: #2e7d32;"
-);
+      // 2. Setup the Title Label
+      Label title = new Label("Photo Repository System");
+      title.setStyle(
+          "-fx-font-size: 24px;" +
+          "-fx-font-weight: bold;" +
+          "-fx-text-fill: #2e7d32;"
+      );
 
+      // Cleaned layout: spacer and theme toggle button are completely removed
+      HBox topBar = new HBox(15, title, openFolderButton);
 
-  // REMOVE "Button" from the start. Just use the variable name.
-    // Inside createTopBar()
-themeToggle = new Button("☀️"); // Use the class variable
-themeToggle.setStyle("-fx-background-color: transparent; -fx-font-size: 18px; -fx-cursor: hand;");
-
-themeToggle.setOnAction(e -> {
-    if (themeToggle.getText().equals("☀️")) {
-        applyDarkMode();
-        themeToggle.setText("🌙");
-        themeToggle.setStyle("-fx-background-color: transparent; -fx-font-size: 18px; -fx-text-fill: white;");
-    } else {
-        applyLightMode();
-        themeToggle.setText("☀️");
-        themeToggle.setStyle("-fx-background-color: transparent; -fx-font-size: 18px; -fx-text-fill: black;");
-    }
-});
-
-    Region spacer = new Region();
-    HBox.setHgrow(spacer, Priority.ALWAYS);
-
-    HBox topBar = new HBox(15, title, openFolderButton, spacer, themeToggle);
-
-    return topBar;
-}
+      return topBar;
+  }
 
     private VBox createNavigationPanel() {
         Label menuTitle = new Label("MENU");
@@ -411,12 +399,11 @@ VBox rightBox = new VBox(10, annotationLabel, annotationArea, saveButton);
     preview.setFitHeight(canvasHeight);
     preview.setManaged(false); 
 
-    // --- OBJECT EXTRACTION LOGIC (The "Cursor Pick" Part) ---
+    // --- OBJECT EXTRACTION LOGIC ---
     Label selectedColorLabel = new Label("Click image to pick color");
     selectedColorLabel.setStyle("-fx-text-fill: #8E8E93; -fx-font-size: 12px;");
 
     preview.setOnMouseClicked(e -> {
-        // Logic from ObjectExtractor.java: Map mouse click to original image pixels
         java.awt.image.BufferedImage bimg = fxToBufferedImage(preview.getImage());
         int x = (int) (e.getX() * bimg.getWidth() / preview.getFitWidth());
         int y = (int) (e.getY() * bimg.getHeight() / preview.getFitHeight());
@@ -440,6 +427,14 @@ VBox rightBox = new VBox(10, annotationLabel, annotationArea, saveButton);
     controlSideBar.setPrefWidth(350);
     controlSideBar.setStyle("-fx-background-color: #000000; -fx-border-color: #2F3336; -fx-border-width: 0 0 0 1;");
 
+    // ADDED: History Navigation Buttons
+    HBox historyControls = new HBox(10);
+    Button undoBtn = new Button("⬅ Undo");
+    Button redoBtn = new Button("Forward ➡");
+    undoBtn.setStyle("-fx-background-color: #2C2C2E; -fx-text-fill: white; -fx-background-radius: 5; -fx-cursor: hand;");
+    redoBtn.setStyle("-fx-background-color: #2C2C2E; -fx-text-fill: white; -fx-background-radius: 5; -fx-cursor: hand;");
+    historyControls.getChildren().addAll(undoBtn, redoBtn);
+
     Label toolsLabel = new Label("Geometric & Selection");
     toolsLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 22px; -fx-text-fill: white;");
 
@@ -455,6 +450,17 @@ VBox rightBox = new VBox(10, annotationLabel, annotationArea, saveButton);
 
     List.of(scaleLab, rotateLab, transXLab, transYLab).forEach(l -> l.setStyle("-fx-text-fill: #EBEBF5; -fx-font-size: 13px; -fx-opacity: 0.85;"));
     List.of(scaleS, rotateS, transX, transY).forEach(this::setupSliderDesign);
+
+    // ADDED: Undo/Redo Action Logic
+    undoBtn.setOnAction(e -> {
+        historyManager.undo();
+        applyHistoryToSliders(scaleS, rotateS, transX, transY);
+    });
+
+    redoBtn.setOnAction(e -> {
+        historyManager.redo();
+        applyHistoryToSliders(scaleS, rotateS, transX, transY);
+    });
 
     Button saveBtn = new Button("Save Changes");
     saveBtn.setMaxWidth(Double.MAX_VALUE);
@@ -482,6 +488,12 @@ VBox rightBox = new VBox(10, annotationLabel, annotationArea, saveButton);
     transX.valueProperty().addListener((o, old, v) -> applyRealTime.run());
     transY.valueProperty().addListener((o, old, v) -> applyRealTime.run());
 
+    // ADDED: Capture History when user stops dragging (Mouse Release)
+    scaleS.setOnMouseReleased(e -> historyManager.addStep(new utils.EditAction(utils.EditAction.Type.SCALE, String.valueOf(scaleS.getValue()))));
+    rotateS.setOnMouseReleased(e -> historyManager.addStep(new utils.EditAction(utils.EditAction.Type.ROTATE, String.valueOf(rotateS.getValue()))));
+    transX.setOnMouseReleased(e -> historyManager.addStep(new utils.EditAction(utils.EditAction.Type.TRANSLATE_X, String.valueOf(transX.getValue()))));
+    transY.setOnMouseReleased(e -> historyManager.addStep(new utils.EditAction(utils.EditAction.Type.TRANSLATE_Y, String.valueOf(transY.getValue()))));
+
     // --- EXTRACTION SECTION ---
     Label extractLabel = new Label("Object Extraction");
     extractLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 14px; -fx-text-fill: white;");
@@ -493,7 +505,7 @@ VBox rightBox = new VBox(10, annotationLabel, annotationArea, saveButton);
     extractBtn.setMaxWidth(Double.MAX_VALUE);
     extractBtn.setStyle("-fx-background-color: #34C759; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 10; -fx-padding: 12;");
     
-   extractBtn.setOnAction(e -> {
+    extractBtn.setOnAction(e -> {
     if (this.pickedColor == null) {
         showAlert("Click the image to pick a color first!");
         return;
@@ -545,10 +557,13 @@ VBox rightBox = new VBox(10, annotationLabel, annotationArea, saveButton);
         ex.printStackTrace();
         showAlert("Failed to extract object.");
     }
-});
 
-    // Assemble Sidebar
+        // ... (Keep existing extraction logic here)
+    });
+
+    // CHANGED: Assemble Sidebar (Included historyControls)
     controlSideBar.getChildren().addAll(
+        historyControls, // ADDED
         toolsLabel, new Separator() {{ setStyle("-fx-background-color: #2F3336;"); }},
         scaleLab, scaleS, rotateLab, rotateS, transXLab, transX, transYLab, transY,
         saveBtn,
@@ -566,9 +581,10 @@ VBox rightBox = new VBox(10, annotationLabel, annotationArea, saveButton);
     );
 
     mainLayout.getChildren().addAll(imageSection, controlSideBar);
-HBox page = new HBox(18, createGalleryMiniList(), mainLayout);
-page.setPadding(new Insets(18));
-root.setCenter(page);}
+    HBox page = new HBox(18, createGalleryMiniList(), mainLayout);
+    page.setPadding(new Insets(18));
+    root.setCenter(page);
+}
 
 private java.awt.Color pickedColor = java.awt.Color.WHITE;
 
@@ -594,7 +610,8 @@ private void showEditingPage() {
     imageSection.setAlignment(Pos.CENTER);
     HBox.setHgrow(imageSection, Priority.ALWAYS);
 
-    ImageView editPreview = new ImageView(mainImageView.getImage());
+    // CHANGED: Using a class-level reference to ensure refreshImageDisplay works
+    this.editPreview = new ImageView(mainImageView.getImage());
     editPreview.setFitHeight(550);
     editPreview.setPreserveRatio(true);
 
@@ -614,21 +631,27 @@ private void showEditingPage() {
     controlSideBar.setPrefWidth(320);
     controlSideBar.setStyle("-fx-background-color: #000000; -fx-border-color: #2F3336; -fx-border-width: 0 0 0 1;");
 
+    // ADDED: History Navigation Controls
+    HBox historyControls = new HBox(10);
+    Button undoBtn = new Button("⬅ Undo");
+    Button redoBtn = new Button("Forward ➡");
+    undoBtn.setStyle("-fx-background-color: #2C2C2E; -fx-text-fill: white; -fx-background-radius: 5; -fx-cursor: hand;");
+    redoBtn.setStyle("-fx-background-color: #2C2C2E; -fx-text-fill: white; -fx-background-radius: 5; -fx-cursor: hand;");
+    historyControls.getChildren().addAll(undoBtn, redoBtn);
+
     Label toolsLabel = new Label("Adjustment Tools");
     toolsLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 18px; -fx-text-fill: white;");
 
-    // --- NEW SAVE CHANGES BUTTON (Starts Inactive) ---
     Button saveBtn = new Button("Save Changes");
     saveBtn.setMaxWidth(Double.MAX_VALUE);
-    saveBtn.setDisable(true); // Disable interaction
+    saveBtn.setDisable(true);
     saveBtn.setStyle("-fx-background-color: #007AFF; -fx-text-fill: white; -fx-font-weight: bold; " +
-                     "-fx-background-radius: 10; -fx-padding: 12; -fx-opacity: 0.5;"); // Dimmed look
+                     "-fx-background-radius: 10; -fx-padding: 12; -fx-opacity: 0.5;");
 
-    // Helper function to "Wake Up" the save button
     Runnable activateSave = () -> {
         saveBtn.setDisable(false);
         saveBtn.setStyle("-fx-background-color: #007AFF; -fx-text-fill: white; -fx-font-weight: bold; " +
-                         "-fx-background-radius: 10; -fx-padding: 12; -fx-opacity: 1.0;"); // Fully lit
+                         "-fx-background-radius: 10; -fx-padding: 12; -fx-opacity: 1.0;");
     };
 
     // --- MONO FILTER ---
@@ -647,9 +670,20 @@ private void showEditingPage() {
     Slider contrastSlider = new Slider(-100, 100, 0);
     setupSliderDesign(contrastSlider);
 
+    // Logic to re-apply sliders from history
+    undoBtn.setOnAction(e -> {
+        historyManager.undo();
+        applyHistoryToEditingSliders(brightSlider, contrastSlider);
+    });
+
+    redoBtn.setOnAction(e -> {
+        historyManager.redo();
+        applyHistoryToEditingSliders(brightSlider, contrastSlider);
+    });
+
     // Shared update logic 
     Runnable updateImage = () -> {
-        activateSave.run(); // Light up save button on change
+        activateSave.run(); 
         int bVal = (int) brightSlider.getValue();
         int cVal = (int) contrastSlider.getValue();
         brightTitle.setText("Brightness: " + bVal);
@@ -659,7 +693,10 @@ private void showEditingPage() {
         img = dip_basic.BrightnessContrast.adjustBrightness(img, bVal);
         img = dip_basic.BrightnessContrast.adjustContrast(img, cVal);
         
-        if (isGrayscale) {
+        // ADDED: Check history for Grayscale state
+        boolean needsGrayscale = historyManager.getActiveHistory().stream()
+                                 .anyMatch(a -> a.getValue().equals("GRAYSCALE"));
+        if (needsGrayscale || isGrayscale) {
             img = dip_basic.Grayscale.apply(img);
         }
         editPreview.setImage(bufferedToFxImage(img));
@@ -668,8 +705,13 @@ private void showEditingPage() {
     brightSlider.valueProperty().addListener((obs, old, val) -> updateImage.run());
     contrastSlider.valueProperty().addListener((obs, old, val) -> updateImage.run());
 
+    // ADDED: Efficient Way - Save state only on mouse release
+    brightSlider.setOnMouseReleased(e -> historyManager.addStep(new utils.EditAction(utils.EditAction.Type.BRIGHTNESS, String.valueOf(brightSlider.getValue()))));
+    contrastSlider.setOnMouseReleased(e -> historyManager.addStep(new utils.EditAction(utils.EditAction.Type.CONTRAST, String.valueOf(contrastSlider.getValue()))));
+
     grayBtn.setOnAction(e -> {
         isGrayscale = true;
+        historyManager.addStep(new utils.EditAction(utils.EditAction.Type.FILTER, "GRAYSCALE"));
         updateImage.run(); 
     });
 
@@ -679,7 +721,7 @@ private void showEditingPage() {
     Slider hueSlider = new Slider(0, 360, 0);
     hueSlider.setStyle("-fx-background-color: linear-gradient(to right, red, orange, yellow, green, cyan, blue, violet, red); -fx-background-radius: 5;");
     hueSlider.valueProperty().addListener((obs, old, val) -> {
-        activateSave.run(); // Light up save button on change
+        activateSave.run(); 
         javafx.scene.paint.Color fxColor = javafx.scene.paint.Color.hsb(val.doubleValue(), 1.0, 1.0);
         String hex = String.format("#%02X%02X%02X", (int)(fxColor.getRed()*255), (int)(fxColor.getGreen()*255), (int)(fxColor.getBlue()*255));
         displayStack.setStyle("-fx-border-color: " + hex + "; -fx-border-width: 20;");
@@ -691,13 +733,12 @@ private void showEditingPage() {
     resetBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: #FF3B30; -fx-font-weight: bold;");
     resetBtn.setOnAction(e -> {
         isGrayscale = false;
+        historyManager = new HistoryManager(); // ADDED: Clear history on reset
         brightSlider.setValue(0);
         contrastSlider.setValue(0);
         hueSlider.setValue(0);
         displayStack.setStyle("-fx-border-width: 0;");
         editPreview.setImage(mainImageView.getImage());
-        
-        // Reset save button to inactive state
         saveBtn.setDisable(true);
         saveBtn.setStyle("-fx-background-color: #007AFF; -fx-text-fill: white; -fx-font-weight: bold; " +
                          "-fx-background-radius: 10; -fx-padding: 12; -fx-opacity: 0.5;");
@@ -705,19 +746,20 @@ private void showEditingPage() {
 
     // Assembly
     controlSideBar.getChildren().addAll(
+        historyControls, // ADDED
         toolsLabel, grayBtn, new Separator() {{ setStyle("-fx-background-color: #2F3336;"); }},
         brightTitle, brightSlider, 
         contrastTitle, contrastSlider, new Separator() {{ setStyle("-fx-background-color: #2F3336;"); }},
         borderTitle, hueSlider,
-        saveBtn, // Added the professional blue button here
-        new Region() {{ VBox.setVgrow(this, Priority.ALWAYS); }}, // Spacer
+        saveBtn, 
+        new Region() {{ VBox.setVgrow(this, Priority.ALWAYS); }}, 
         resetBtn
     );
 
     mainLayout.getChildren().addAll(imageSection, controlSideBar);
     HBox page = new HBox(18, createGalleryMiniList(), mainLayout);
-page.setPadding(new Insets(18));
-root.setCenter(page);
+    page.setPadding(new Insets(18));
+    root.setCenter(page);
 }
 private ScrollPane createGalleryMiniList() {
     FlowPane miniPane = new FlowPane();
@@ -904,63 +946,21 @@ private ScrollPane createGalleryMiniList() {
     private Image bufferedToFxImage(java.awt.image.BufferedImage bimg) {
     return javafx.embed.swing.SwingFXUtils.toFXImage(bimg, null);}
 
-    private void applyDarkMode() {
-    String blackBg = "-fx-background-color: #000000;";
-    String borderStyle = "-fx-border-color: #2F3336; -fx-border-width: 0 1 0 0;";
-    
-    // 1. Main Background
-    root.setStyle(blackBg);
-    
-    // 2. Top Bar
-    HBox topBar = (HBox) root.getTop();
-topBar.setStyle(
-        "-fx-background-color: rgba(255,255,255,0.95);" +
-        "-fx-border-color: #e5e7eb;" +
-        "-fx-border-width: 0 0 1 0;"
-);
-    topBar.getChildren().forEach(n -> {
-        if (n instanceof Label) n.setStyle("-fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 22px;");
-    });
-
-    // 3. Navigation (Left)
-    VBox nav = (VBox) root.getLeft();
-    nav.setStyle(blackBg + borderStyle);
-
-    // 4. Center Gallery (Fixes the big white area in image_5c9d98.png)
-    if (root.getCenter() instanceof javafx.scene.layout.Region) {
-        javafx.scene.layout.Region center = (javafx.scene.layout.Region) root.getCenter();
-        center.setStyle(blackBg);
-        
-        // This targets the internal scroll pane and viewport to kill the white light
-        center.lookupAll(".scroll-pane").forEach(node -> 
-            node.setStyle("-fx-background: #000000; -fx-background-color: transparent; -fx-border-color: transparent;")
-        );
-        center.lookupAll(".viewport").forEach(node -> 
-            node.setStyle("-fx-background-color: transparent;")
-        );
-    }
-
-    // 5. Right Side (Annotation)
-    VBox right = (VBox) root.getRight();
-    right.setStyle("-fx-background-color: #000000; -fx-border-color: #2F3336; -fx-border-width: 0 0 0 1;");
-    annotationArea.setStyle("-fx-control-inner-background: #121212; -fx-text-fill: white; -fx-border-color: #2F3336;");
-}
-
-private void applyLightMode() {
-    // Restore the standard light background
-root.setStyle("-fx-background-color: #eef2f3;");    
-    HBox topBar = (HBox) root.getTop();
-topBar.setStyle(
-        "-fx-background-color: #ffffff;" +
-        "-fx-border-color: #dcdcdc;" +
-        "-fx-border-width: 0 0 1 0;"
-);
-    // Update the button icon visibility
-    if (themeToggle != null) {
-        themeToggle.setText("☀️");
-        themeToggle.setStyle("-fx-background-color: transparent; -fx-font-size: 18px; -fx-text-fill: black;");
-    }
-}
+// private void applyLightMode() {
+//     // Restore the standard light background
+// root.setStyle("-fx-background-color: #eef2f3;");    
+//     HBox topBar = (HBox) root.getTop();
+// topBar.setStyle(
+//         "-fx-background-color: #ffffff;" +
+//         "-fx-border-color: #dcdcdc;" +
+//         "-fx-border-width: 0 0 1 0;"
+// );
+//     // Update the button icon visibility
+//     if (themeToggle != null) {
+//         themeToggle.setText("☀️");
+//         themeToggle.setStyle("-fx-background-color: transparent; -fx-font-size: 18px; -fx-text-fill: black;");
+//     }
+// }
 
 private void showSharePage() {
     VBox shareLayout = new VBox(20);
@@ -1043,6 +1043,9 @@ private java.awt.image.BufferedImage extractObjectBySimilarity(java.awt.image.Bu
     }
     return output;
 }
+
+private File selectedTargetFile = null; // Class-level variable to store the selected target image
+
 private void showMosaicPage() {
     currentSection = "mosaic";
     VBox layout = new VBox(18);
@@ -1050,34 +1053,29 @@ private void showMosaicPage() {
     layout.setAlignment(Pos.TOP_CENTER);
     layout.setStyle(cardStyle());
 
-    Label title = new Label("🖼️ Shape Mosaic Studio");
+    Label title = new Label("🖼️ True Photomosaic Studio");
     title.setStyle("-fx-font-size: 28px; -fx-font-weight: bold; -fx-text-fill: #111827;");
 
-    Label subtitle = new Label("Create a large shape using many small photo tiles from your collection.");
+    Label subtitle = new Label("Reconstruct a target image using the color values of your photo collection.");
     subtitle.setStyle("-fx-font-size: 13px; -fx-text-fill: #6b7280;");
 
-    ComboBox<String> shapeChoice = new ComboBox<>();
-    shapeChoice.getItems().addAll("Circle", "Heart", "Diamond", "Hexagon");
-    shapeChoice.setValue("Hexagon");
+    // UI elements for file selection and sizes
+    Button selectTargetBtn = new Button("📁 Choose Target Image");
+    Label targetLabel = new Label("No target image selected");
+    targetLabel.setStyle("-fx-font-style: italic; -fx-text-fill: #6b7280;");
 
-    TextField tileSizeField = new TextField("60");
+    TextField tileSizeField = new TextField("30"); // Smaller tile size yields higher fidelity resolution
     tileSizeField.setMaxWidth(90);
 
-    TextField canvasSizeField = new TextField("720");
+    TextField canvasSizeField = new TextField("900"); // Standardized output grid dimensions
     canvasSizeField.setMaxWidth(90);
 
-    CheckBox useAnnotatedOnly = new CheckBox("Use favourite/annotated images only");
-    CheckBox shuffleImages = new CheckBox("Shuffle tiles");
-
     HBox settings = new HBox(12,
-            new Label("Shape:"), shapeChoice,
+            selectTargetBtn, targetLabel,
             new Label("Tile Size:"), tileSizeField,
             new Label("Canvas:"), canvasSizeField
     );
     settings.setAlignment(Pos.CENTER);
-
-    HBox options = new HBox(20, useAnnotatedOnly, shuffleImages);
-    options.setAlignment(Pos.CENTER);
 
     ImageView mosaicView = new ImageView();
     mosaicView.setFitWidth(720);
@@ -1094,7 +1092,7 @@ private void showMosaicPage() {
 
     final BufferedImage[] currentMosaic = new BufferedImage[1];
 
-    Button generateBtn = new Button("✨ Generate Shape Mosaic");
+    Button generateBtn = new Button("✨ Generate Photomosaic");
     Button saveBtn = new Button("💾 Save Mosaic");
     Button clearBtn = new Button("🗑 Clear");
 
@@ -1108,48 +1106,99 @@ private void showMosaicPage() {
             "-fx-padding: 10 18;"
     );
 
-    generateBtn.setOnAction(e -> {
+    // File choosing configuration block
+    selectTargetBtn.setOnAction(e -> {
+        javafx.stage.FileChooser fileChooser = new javafx.stage.FileChooser();
+        fileChooser.setTitle("Select Target Image");
+        fileChooser.getExtensionFilters().addAll(
+                new javafx.stage.FileChooser.ExtensionFilter("Image Files", "*.png", "*.jpg", "*.jpeg", "*.bmp")
+        );
+        File file = fileChooser.showOpenDialog(root.getScene().getWindow());
+        if (file != null) {
+            selectedTargetFile = file;
+            targetLabel.setText(file.getName());
+        }
+    });
+
+   generateBtn.setOnAction(e -> {
+        // 1. Basic Validation Checks
         if (imageList.isEmpty()) {
-            showAlert("Please open an image folder first.");
+            showAlert("Please open an image source folder first.");
+            return;
+        }
+        if (selectedTargetFile == null) {
+            showAlert("Please select a target background image to replicate.");
             return;
         }
 
         try {
+            // 2. Parse User Dimensions from the UI Input Fields
             int tileSize = Integer.parseInt(tileSizeField.getText());
             int canvasSize = Integer.parseInt(canvasSizeField.getText());
 
-            List<ImageModel> selectedModels = new ArrayList<>();
-
+            // 3. Extract the Plain Text File Paths (Takes virtually zero memory)
+            List<String> tilePaths = new ArrayList<>();
             for (ImageModel model : imageList) {
-                if (!useAnnotatedOnly.isSelected() || annotationManager.hasAnnotation(model.getFilePath())) {
-                    selectedModels.add(model);
+                tilePaths.add(model.getFilePath());
+            }
+
+            // 4. Update UI Button State to Prevent Accidental Double-Clicks
+            generateBtn.setDisable(true);
+            generateBtn.setText("⏳ Processing Mosaic...");
+
+            // Hint to Java to run a Garbage Collection pass to maximize available RAM
+            System.gc();
+
+            // 5. This is EXACTLY where your Task block lives
+            Task<BufferedImage> mosaicTask = new Task<>() {
+                @Override
+                protected BufferedImage call() throws Exception {
+                    // Step 1: Turn the text paths into memory-optimized AnalyzedTiles
+                    List<MosaicGenerator.AnalyzedTile> cachedTiles = 
+                            MosaicGenerator.preAnalyzeTiles(tilePaths, tileSize);
+                    
+                    // Step 2: Pass those cachedTiles into createTrueMosaic
+                    BufferedImage result = MosaicGenerator.createTrueMosaic(selectedTargetFile, cachedTiles, tileSize, canvasSize);
+                    
+                    // Step 3: Clear the list to free up memory immediately
+                    cachedTiles.clear();
+                    
+                    return result;
                 }
-            }
+            };
 
-            if (selectedModels.isEmpty()) {
-                showAlert("No images available for mosaic.");
-                return;
-            }
-
-            if (shuffleImages.isSelected()) {
-                java.util.Collections.shuffle(selectedModels);
-            }
-
-            List<BufferedImage> tiles = new ArrayList<>();
-
-            for (ImageModel model : selectedModels) {
-                BufferedImage img = ImageIO.read(new File(model.getFilePath()));
-                if (img != null) {
-                    tiles.add(img);
+            // 6. Define what happens when the background task completes successfully
+            mosaicTask.setOnSucceeded(workerEvent -> {
+                BufferedImage result = mosaicTask.getValue();
+                if (result != null) {
+                    currentMosaic[0] = result;
+                    mosaicView.setImage(SwingFXUtils.toFXImage(result, null));
+                } else {
+                    showAlert("Failed to process mosaic layout.");
                 }
-            }
+                // Reset button back to its active state
+                generateBtn.setDisable(false);
+                generateBtn.setText("✨ Generate Photomosaic");
+                System.gc(); 
+            });
 
-            currentMosaic[0] = createShapeMosaic(tiles, shapeChoice.getValue(), canvasSize, tileSize);
-            mosaicView.setImage(SwingFXUtils.toFXImage(currentMosaic[0], null));
+            // 7. Define what happens if the background task crashes or encounters an error
+            mosaicTask.setOnFailed(workerEvent -> {
+                Throwable error = mosaicTask.getException();
+                if (error != null) error.printStackTrace();
+                showAlert("An error occurred during mosaic generation.");
+                generateBtn.setDisable(false);
+                generateBtn.setText("✨ Generate Photomosaic");
+                System.gc();
+            });
 
-        } catch (Exception ex) {
-            ex.printStackTrace();
-            showAlert("Failed to generate mosaic.");
+            // 8. Start the Task in a Background Daemon Thread
+            Thread thread = new Thread(mosaicTask);
+            thread.setDaemon(true); // Automatically shuts down thread if the application window is closed
+            thread.start();
+
+        } catch (NumberFormatException ex) {
+            showAlert("Please input valid numeric values for structural dimensions.");
         }
     });
 
@@ -1160,132 +1209,29 @@ private void showMosaicPage() {
         }
 
         try {
-            File output = new File("shape_mosaic_" + System.currentTimeMillis() + ".png");
+            File output = new File("true_mosaic_" + System.currentTimeMillis() + ".png");
             ImageIO.write(currentMosaic[0], "png", output);
-            showAlert("Mosaic saved as: " + output.getName());
+            showAlert("Mosaic successfully saved as: " + output.getName());
         } catch (Exception ex) {
-            showAlert("Failed to save mosaic.");
+            showAlert("Failed to export image output asset.");
         }
     });
 
     clearBtn.setOnAction(e -> {
         mosaicView.setImage(null);
         currentMosaic[0] = null;
+        selectedTargetFile = null;
+        targetLabel.setText("No target image selected");
     });
 
     HBox buttons = new HBox(12, generateBtn, saveBtn, clearBtn);
     buttons.setAlignment(Pos.CENTER);
 
-    layout.getChildren().addAll(title, subtitle, settings, options, buttons, previewBox);
+    layout.getChildren().addAll(title, subtitle, settings, buttons, previewBox);
 
-HBox page = new HBox(18, createGalleryMiniList(), layout);
+    HBox page = new HBox(18, createGalleryMiniList(), layout);
     page.setPadding(new Insets(18));
     root.setCenter(page);
-}
-private BufferedImage createShapeMosaic(List<BufferedImage> tiles, String shape, int canvasSize, int tileSize) {
-    BufferedImage output = new BufferedImage(canvasSize, canvasSize, BufferedImage.TYPE_INT_ARGB);
-    java.awt.Graphics2D g = output.createGraphics();
-
-    g.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING, java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
-
-    // Base background full frame
-    g.setColor(new java.awt.Color(230, 235, 240));
-    g.fillRect(0, 0, canvasSize, canvasSize);
-
-    int tileIndex = 0;
-
-    for (int y = 0; y < canvasSize; y += tileSize) {
-        for (int x = 0; x < canvasSize; x += tileSize) {
-
-            BufferedImage tile = tiles.get(tileIndex % tiles.size());
-            java.awt.Image scaled = tile.getScaledInstance(tileSize, tileSize, java.awt.Image.SCALE_SMOOTH);
-
-            int centerX = x + tileSize / 2;
-            int centerY = y + tileSize / 2;
-
-            if (isPointInsideShape(centerX, centerY, canvasSize, shape)) {
-                // Inside shape = full bright photo tiles
-                g.drawImage(scaled, x, y, null);
-            } else {
-                // Outside shape = faded base tiles
-                java.awt.Graphics2D tileG = (java.awt.Graphics2D) g.create();
-                tileG.setComposite(java.awt.AlphaComposite.getInstance(java.awt.AlphaComposite.SRC_OVER, 0.18f));
-                tileG.drawImage(scaled, x, y, null);
-                tileG.dispose();
-
-                // soft white overlay
-                g.setColor(new java.awt.Color(255, 255, 255, 130));
-                g.fillRect(x, y, tileSize, tileSize);
-            }
-
-            tileIndex++;
-        }
-    }
-
-  
-    g.dispose();
-    return output;
-}
-
-private boolean isPointInsideShape(int x, int y, int size, String shape) {
-    double cx = size / 2.0;
-    double cy = size / 2.0;
-
-    double dx = (x - cx) / cx;
-    double dy = (y - cy) / cy;
-
-    switch (shape) {
-        case "Circle":
-            return dx * dx + dy * dy <= 0.85;
-
-        case "Diamond":
-            return Math.abs(dx) + Math.abs(dy) <= 1.1;
-
-        case "Hexagon":
-            return Math.abs(dx) <= 0.9 &&
-                   Math.abs(dy) <= 0.75 &&
-                   Math.abs(dx) * 0.6 + Math.abs(dy) <= 0.95;
-
-        case "Heart":
-            double heartX = dx * 1.25;
-            double heartY = -dy * 1.25;
-            double formula = Math.pow(heartX * heartX + heartY * heartY - 1, 3)
-                    - heartX * heartX * Math.pow(heartY, 3);
-            return formula <= 0;
-
-        default:
-            return true;
-    }
-}
-
-private BufferedImage createSimpleMosaic(List<BufferedImage> images, int cols, int tileSize) {
-    int rows = (int) Math.ceil(images.size() / (double) cols);
-
-    BufferedImage mosaic = new BufferedImage(
-            cols * tileSize,
-            rows * tileSize,
-            BufferedImage.TYPE_INT_RGB
-    );
-
-    java.awt.Graphics2D g = mosaic.createGraphics();
-
-    int x = 0;
-    int y = 0;
-
-    for (BufferedImage img : images) {
-        java.awt.Image scaled = img.getScaledInstance(tileSize, tileSize, java.awt.Image.SCALE_SMOOTH);
-        g.drawImage(scaled, x, y, null);
-
-        x += tileSize;
-
-        if (x >= cols * tileSize) {
-            x = 0;
-            y += tileSize;
-        }
-    }
-
-    g.dispose();
-    return mosaic;
 }
 
 private void showVideoPage() {
@@ -1561,7 +1507,7 @@ private VBox createMiniPreviewPanel() {
     panel.setPrefWidth(260);
     panel.setStyle(darkCardStyle());
 
-Label title = new Label("Image Preview");
+    Label title = new Label("Image Preview");
     title.setStyle("-fx-text-fill: white; -fx-font-size: 16px; -fx-font-weight: bold;");
 
     ImageView preview = new ImageView();
@@ -1581,6 +1527,74 @@ Label title = new Label("Image Preview");
 
     panel.getChildren().addAll(title, preview, name);
     return panel;
+}
+
+private void refreshImageDisplay() {
+    // Start fresh with the original
+    javafx.scene.image.Image tempImage = originalImage;
+    
+    // Default values for transformations
+    double rotation = 0;
+    double scale = 1.0;
+
+    for (EditAction action : historyManager.getActiveHistory()) {
+        switch (action.getType()) {
+            case FILTER:
+                // Call your existing filter logic (e.g., ImageFilters.apply(tempImage, action.getValue()))
+                // tempImage = applyFilter(tempImage, action.getValue());
+                break;
+            case ROTATE:
+                rotation += Double.parseDouble(action.getValue());
+                break;
+            case SCALE:
+                scale *= Double.parseDouble(action.getValue());
+                break;
+        }
+    }
+
+    // Apply the final results to your ImageView
+    imageView.setImage(tempImage);
+    imageView.setRotate(rotation);
+    imageView.setScaleX(scale);
+    imageView.setScaleY(scale);
+}
+
+// ADDED: Syncs the UI sliders with the history data
+private void applyHistoryToSliders(Slider s, Slider r, Slider tx, Slider ty) {
+    java.util.List<utils.EditAction> currentHistory = historyManager.getActiveHistory();
+    double scale = 100, rotate = 0, x = 0, y = 0;
+
+    for (utils.EditAction action : currentHistory) {
+        switch (action.getType()) {
+            case SCALE -> scale = Double.parseDouble(action.getValue());
+            case ROTATE -> rotate = Double.parseDouble(action.getValue());
+            case TRANSLATE_X -> x = Double.parseDouble(action.getValue());
+            case TRANSLATE_Y -> y = Double.parseDouble(action.getValue());
+            // Filter is ignored here since this page only deals with transforms
+        }
+    }
+    s.setValue(scale);
+    r.setValue(rotate);
+    tx.setValue(x);
+    ty.setValue(y);
+}
+
+private void applyHistoryToEditingSliders(Slider brightS, Slider contrastS) {
+    java.util.List<utils.EditAction> currentHistory = historyManager.getActiveHistory();
+    double brightness = 0, contrast = 0;
+    this.isGrayscale = false; // Reset local state to check history
+
+    for (utils.EditAction action : currentHistory) {
+        switch (action.getType()) {
+            case BRIGHTNESS -> brightness = Double.parseDouble(action.getValue());
+            case CONTRAST -> contrast = Double.parseDouble(action.getValue());
+            case FILTER -> {
+                if (action.getValue().equals("GRAYSCALE")) this.isGrayscale = true;
+            }
+        }
+    }
+    brightS.setValue(brightness);
+    contrastS.setValue(contrast);
 }
 }
 
