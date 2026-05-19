@@ -62,6 +62,7 @@ public class MainUI {
     private ImageModel currentImage;
     private List<ImageModel> imageList;
     private String currentSection = "gallery";
+  
 
     public MainUI(Stage stage) {
         this.stage = stage;
@@ -102,24 +103,58 @@ public class MainUI {
 root.setStyle("-fx-background-color: linear-gradient(to bottom right, #f8fafc, #e5e7eb);");      }
 
 private HBox createTopBar() {
-      // 1. Setup the Open Folder Button
-      Button openFolderButton = new Button("Open Folder");
-      openFolderButton.setStyle(primaryButtonStyle());
-      openFolderButton.setOnAction(e -> openImageFolder());
+    Button openFolderButton = new Button("＋ Add Folder");
+    openFolderButton.setStyle(
+        "-fx-background-color: #2563eb;" +
+        "-fx-text-fill: white;" +
+        "-fx-font-size: 14px;" +
+        "-fx-font-weight: bold;" +
+        "-fx-background-radius: 14;" +
+        "-fx-padding: 12 20;" +
+        "-fx-effect: dropshadow(gaussian, rgba(37,99,235,0.35), 12, 0, 0, 4);" +
+        "-fx-cursor: hand;"
+    );
+    openFolderButton.setOnAction(e -> openImageFolder());
 
-      // 2. Setup the Title Label
-      Label title = new Label("Photo Repository System");
-      title.setStyle(
-          "-fx-font-size: 24px;" +
-          "-fx-font-weight: bold;" +
-          "-fx-text-fill: #2e7d32;"
-      );
+    Label title = new Label("Photo Studio");
+    title.setStyle(
+        "-fx-font-size: 28px;" +
+        "-fx-font-weight: 900;" +
+        "-fx-text-fill: #111827;" +
+        "-fx-padding: 0 8 0 0;"
+    );
 
-      // Cleaned layout: spacer and theme toggle button are completely removed
-      HBox topBar = new HBox(15, title, openFolderButton);
+    Label subtitle = new Label("Photo • Edit • Create");
+    subtitle.setStyle(
+        "-fx-font-size: 12px;" +
+        "-fx-text-fill: #64748b;" +
+        "-fx-font-weight: bold;"
+    );
 
-      return topBar;
-  }
+    VBox titleBox = new VBox(2, title, subtitle);
+    titleBox.setAlignment(Pos.CENTER_LEFT);
+
+    Region spacer = new Region();
+    HBox.setHgrow(spacer, Priority.ALWAYS);
+
+Button themeToggle = new Button("☀");
+themeToggle.setStyle(
+    "-fx-background-color: transparent;" +
+    "-fx-font-size: 18px;" +
+    "-fx-cursor: hand;"
+);
+
+    HBox topBar = new HBox(18, titleBox, openFolderButton, spacer, themeToggle);
+    topBar.setPadding(new Insets(14, 22, 14, 22));
+    topBar.setAlignment(Pos.CENTER_LEFT);
+    topBar.setStyle(
+        "-fx-background-color: linear-gradient(to right, #ffffff, #eef2ff);" +
+        "-fx-border-color: #e5e7eb;" +
+        "-fx-border-width: 0 0 1 0;"
+    );
+
+    return topBar;
+}
 
     private VBox createNavigationPanel() {
         Label menuTitle = new Label("MENU");
@@ -216,16 +251,19 @@ private HBox createTopBar() {
         BorderPane content = new BorderPane();
         content.setPadding(new Insets(18));
 content.setStyle(
-        "-fx-background-color: transparent;"
+        "-fx-background-color: linear-gradient(to bottom right, #f8fafc, #eef2ff);" +
+        "-fx-background-radius: 24;" +
+        "-fx-padding: 18;"
 );
 
-        Label galleryTitle = new Label("📂 Image Gallery");
-      galleryTitle.setStyle(
-        "-fx-font-size: 20px;" +
+       Label galleryTitle = new Label("📂 Image Gallery");
+galleryTitle.setStyle(
+        "-fx-font-size: 26px;" +
         "-fx-font-weight: bold;" +
-        "-fx-padding: 0 0 14 0;" +
-        "-fx-text-fill: #111827;"
+        "-fx-text-fill: #111827;" +
+        "-fx-padding: 0 0 16 0;"
 );
+
         content.setTop(galleryTitle);
         content.setLeft(createThumbnailSection());
         content.setCenter(createImagePreviewSection());
@@ -240,11 +278,20 @@ content.setStyle(
         thumbnailPane.setHgap(10);
         thumbnailPane.setVgap(10);
         thumbnailPane.setPrefWrapLength(220);
+        thumbnailPane.setStyle(
+        "-fx-background-color: #111827;" +
+        "-fx-background-radius: 22;"
+);
 
         ScrollPane scrollPane = new ScrollPane(thumbnailPane);
         scrollPane.setPrefWidth(250);
         scrollPane.setFitToWidth(true);
-      scrollPane.setStyle(cardStyle());
+      scrollPane.setStyle(
+        "-fx-background-color: #111827;" +
+        "-fx-background-radius: 22;" +
+        "-fx-padding: 10;" +
+        "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.18), 18, 0, 0, 6);"
+);
         return scrollPane;
     }
 
@@ -301,7 +348,12 @@ fileNameLabel.setStyle(
         centerBox.setAlignment(Pos.TOP_CENTER);
 
         StackPane previewPane = new StackPane(centerBox);
-previewPane.setStyle(darkCardStyle());
+previewPane.setStyle(
+        "-fx-background-color: linear-gradient(to bottom right, #020617, #111827);" +
+        "-fx-background-radius: 24;" +
+        "-fx-padding: 18;" +
+        "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.28), 24, 0, 0, 8);"
+);
         return previewPane;
     }
 
@@ -319,6 +371,8 @@ previewPane.setStyle(darkCardStyle());
         annotationArea.setPrefHeight(250);
 
         Button saveButton = new Button("Save Annotation");
+        saveButton.setMaxWidth(Double.MAX_VALUE);
+saveButton.setStyle(greenButtonStyle());
         saveButton.setMaxWidth(Double.MAX_VALUE);
         saveButton.setDisable(true);
         // 1. Initial State (Disabled and Faded)
@@ -347,7 +401,12 @@ annotationArea.textProperty().addListener((obs, oldText, newText) -> {
 VBox rightBox = new VBox(10, annotationLabel, annotationArea, saveButton);       
       rightBox.setPadding(new Insets(15));
       rightBox.setPrefWidth(280);
-      rightBox.setStyle(cardStyle());
+     rightBox.setStyle(
+        "-fx-background-color: #ffffff;" +
+        "-fx-background-radius: 24;" +
+        "-fx-padding: 18;" +
+        "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.12), 18, 0, 0, 6);"
+);
 
         return rightBox;
     }
@@ -1176,14 +1235,39 @@ private ScrollPane createGalleryMiniList() {
         StackPane thumbnailStack = new StackPane(thumbnail, heart);
         StackPane.setAlignment(heart, Pos.TOP_RIGHT);
 
-        thumbnailStack.setStyle(
-        "-fx-background-color: #f9fafb;" +
-        "-fx-background-radius: 12;" +
-        "-fx-border-color: #e5e7eb;" +
-        "-fx-border-radius: 12;" +
-        "-fx-padding: 6;" +
-        "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.10), 6, 0, 0, 2);"
+     thumbnailStack.setStyle(
+        "-fx-background-color: #1f2937;" +
+        "-fx-background-radius: 14;" +
+        "-fx-border-color: #334155;" +
+        "-fx-border-radius: 14;" +
+        "-fx-border-width: 2;" +
+        "-fx-padding: 7;" +
+        "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.25), 8, 0, 0, 3);" +
+        "-fx-cursor: hand;"
 );
+String normalThumbStyle =
+        "-fx-background-color: #1f2937;" +
+        "-fx-background-radius: 14;" +
+        "-fx-border-color: #334155;" +
+        "-fx-border-radius: 14;" +
+        "-fx-border-width: 2;" +
+        "-fx-padding: 7;" +
+        "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.25), 8, 0, 0, 3);" +
+        "-fx-cursor: hand;";
+
+String hoverThumbStyle =
+        "-fx-background-color: #2563eb;" +
+        "-fx-background-radius: 14;" +
+        "-fx-border-color: #60a5fa;" +
+        "-fx-border-radius: 14;" +
+        "-fx-border-width: 2;" +
+        "-fx-padding: 7;" +
+        "-fx-effect: dropshadow(gaussian, rgba(37,99,235,0.45), 12, 0, 0, 4);" +
+        "-fx-cursor: hand;";
+
+thumbnailStack.setStyle(normalThumbStyle);
+thumbnailStack.setOnMouseEntered(e -> thumbnailStack.setStyle(hoverThumbStyle));
+thumbnailStack.setOnMouseExited(e -> thumbnailStack.setStyle(normalThumbStyle));
 
         thumbnailStack.setOnMouseClicked(e -> displayImage(imageModel));
 
@@ -1546,11 +1630,18 @@ private void showVideoPage() {
     VBox layout = new VBox(18);
     layout.setPadding(new Insets(22));
     layout.setAlignment(Pos.TOP_CENTER);
-    layout.setStyle(cardStyle());
+    layout.setStyle(
+    "-fx-background-color: linear-gradient(to bottom right, #ffffff, #f1f5f9);" +
+    "-fx-background-radius: 24;" +
+    "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.12), 22, 0, 0, 8);"
+);
 
     Label title = new Label("🎬 Video Story Creator");
-    title.setStyle("-fx-font-size: 28px; -fx-font-weight: bold; -fx-text-fill: #111827;");
-
+title.setStyle(
+    "-fx-font-size: 32px;" +
+    "-fx-font-weight: bold;" +
+    "-fx-text-fill: #111827;"
+);
     Label subtitle = new Label("Build a slideshow video sequence from your favourite images.");
     subtitle.setStyle("-fx-font-size: 13px; -fx-text-fill: #6b7280;");
 
