@@ -39,6 +39,8 @@ import javax.imageio.ImageIO;
 import javafx.embed.swing.SwingFXUtils;
 import multimedia.MosaicGenerator;
 import java.io.File;
+import javafx.stage.FileChooser;
+
 
 public class MainUI {
 
@@ -443,6 +445,7 @@ VBox rightBox = new VBox(10, annotationLabel, annotationArea, saveButton);
         root.setCenter(page);
     }
 
+
 //   private void showObjectTransformPage() {
 //     currentSection = "object";
 //     if (currentImage == null) {
@@ -729,6 +732,8 @@ VBox rightBox = new VBox(10, annotationLabel, annotationArea, saveButton);
 //     root.setCenter(page);
 // }
 
+
+   
 private void showObjectTransformPage() {
     currentSection = "object";
     if (currentImage == null) {
@@ -1763,7 +1768,6 @@ loadFavBtn.setOnAction(e -> {
 
 
 Button saveVideoBtn = new Button("⬇ Save Video");
-
 saveVideoBtn.setStyle(
     "-fx-background-color: #ef4444;" +
     "-fx-text-fill: white;" +
@@ -1774,11 +1778,20 @@ saveVideoBtn.setStyle(
 );
 
 saveVideoBtn.setOnAction(e -> {
-    Alert alert = new Alert(Alert.AlertType.INFORMATION);
-    alert.setTitle("Video Saved");
-    alert.setHeaderText(null);
-    alert.setContentText("Slideshow video exported successfully!");
-    alert.showAndWait();
+    FileChooser fileChooser = new FileChooser();
+    fileChooser.setTitle("Save Video");
+
+    fileChooser.getExtensionFilters().add(
+        new FileChooser.ExtensionFilter("MP4 Video", "*.mp4")
+    );
+
+    fileChooser.setInitialFileName("slideshow_video.mp4");
+
+    File outputFile = fileChooser.showSaveDialog(stage);
+
+    if (outputFile != null) {
+        showAlert("Video export location selected:\n" + outputFile.getAbsolutePath());
+    }
 });
 
     playBtn.setStyle(greenButtonStyle());
