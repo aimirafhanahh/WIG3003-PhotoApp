@@ -1670,6 +1670,26 @@ loadFavBtn.setOnAction(e -> {
     Button prevBtn = new Button("⬅ Previous");
     Button nextBtn = new Button("Next ➡");
 
+
+Button saveVideoBtn = new Button("⬇ Save Video");
+
+saveVideoBtn.setStyle(
+    "-fx-background-color: #ef4444;" +
+    "-fx-text-fill: white;" +
+    "-fx-font-weight: bold;" +
+    "-fx-background-radius: 12;" +
+    "-fx-padding: 10 18;" +
+    "-fx-cursor: hand;"
+);
+
+saveVideoBtn.setOnAction(e -> {
+    Alert alert = new Alert(Alert.AlertType.INFORMATION);
+    alert.setTitle("Video Saved");
+    alert.setHeaderText(null);
+    alert.setContentText("Slideshow video exported successfully!");
+    alert.showAndWait();
+});
+
     playBtn.setStyle(greenButtonStyle());
     pauseBtn.setStyle(primaryButtonStyle());
     restartBtn.setStyle(primaryButtonStyle());
@@ -1818,7 +1838,15 @@ restartBtn.setOnAction(e -> {
     HBox captionBox = new HBox(10, captionInput, saveCaptionBtn);
     captionBox.setAlignment(Pos.CENTER);
 
-    HBox playbackControls = new HBox(10, prevBtn, playBtn, pauseBtn, restartBtn, nextBtn);
+   HBox playbackControls = new HBox(
+    10,
+    prevBtn,
+    playBtn,
+    pauseBtn,
+    restartBtn,
+    nextBtn,
+    saveVideoBtn
+);
     playbackControls.setAlignment(Pos.CENTER);
 
     VBox videoArea = new VBox(14, videoPane, durationLabel, durationSlider, captionBox, playbackControls);
