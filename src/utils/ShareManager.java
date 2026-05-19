@@ -43,7 +43,7 @@ public class ShareManager {
     /**
      * Reads the file from the path and places the image data on the clipboard.
      */
-    private void copyImageToClipboard(String path) throws Exception {
+    public void copyImageToClipboard(String path) throws Exception {
         File imageFile = new File(path);
         
         if (!imageFile.exists()) {
@@ -65,19 +65,21 @@ public class ShareManager {
     /**
      * Standard Email sharing via the system's default mail client.
      */
-    public void shareViaDefaultEmail(String subject, String body) {
-        try {
-            String uriStr = String.format("mailto:?subject=%s&body=%s",
-                    URLEncoder.encode(subject, StandardCharsets.UTF_8.toString()),
-                    URLEncoder.encode(body, StandardCharsets.UTF_8.toString()));
+ public void shareViaGmail(String subject, String body) {
+    try {
+        // Construct the Gmail Compose URL
+        String url = "https://mail.google.com/mail/?view=cm&fs=1" +
+                     "&su=" + URLEncoder.encode(subject, StandardCharsets.UTF_8.toString()) +
+                     "&body=" + URLEncoder.encode(body, StandardCharsets.UTF_8.toString());
 
-            if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.MAIL)) {
-                Desktop.getDesktop().mail(new URI(uriStr));
-            }
-        } catch (Exception e) {
-            System.err.println("Email Error: " + e.getMessage());
+        if (Desktop.isDesktopSupported()) {
+            // This opens Gmail in the user's default web browser (Chrome, Edge, etc.)
+            Desktop.getDesktop().browse(new URI(url));
         }
+    } catch (Exception e) {
+        System.err.println("Gmail Launch Error: " + e.getMessage());
     }
+}
 }
 
 /**

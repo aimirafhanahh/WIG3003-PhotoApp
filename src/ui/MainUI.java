@@ -39,6 +39,7 @@ import javax.imageio.ImageIO;
 import javafx.embed.swing.SwingFXUtils;
 import multimedia.MosaicGenerator;
 import java.io.File;
+import javafx.stage.FileChooser;
 
 public class MainUI {
 
@@ -103,23 +104,76 @@ root.setStyle("-fx-background-color: linear-gradient(to bottom right, #f8fafc, #
 
 private HBox createTopBar() {
       // 1. Setup the Open Folder Button
-      Button openFolderButton = new Button("Open Folder");
-      openFolderButton.setStyle(primaryButtonStyle());
-      openFolderButton.setOnAction(e -> openImageFolder());
+    //   Button openFolderButton = new Button("Open Folder");
+    //   openFolderButton.setStyle(primaryButtonStyle());
+    //   openFolderButton.setOnAction(e -> openImageFolder());
 
       // 2. Setup the Title Label
-      Label title = new Label("Photo Repository System");
-      title.setStyle(
-          "-fx-font-size: 24px;" +
-          "-fx-font-weight: bold;" +
-          "-fx-text-fill: #2e7d32;"
-      );
+    //   Label title = new Label("Photo Repository System");
+    //   title.setStyle(
+    //       "-fx-font-size: 24px;" +
+    //       "-fx-font-weight: bold;" +
+    //       "-fx-text-fill: #2e7d32;"
+    //   );
 
-      // Cleaned layout: spacer and theme toggle button are completely removed
-      HBox topBar = new HBox(15, title, openFolderButton);
+    Button openFolderButton = new Button("＋ Add Folder");
+    openFolderButton.setStyle(
+        "-fx-background-color: #2563eb;" +
+        "-fx-text-fill: white;" +
+        "-fx-font-size: 14px;" +
+        "-fx-font-weight: bold;" +
+        "-fx-background-radius: 14;" +
+        "-fx-padding: 12 20;" +
+        "-fx-effect: dropshadow(gaussian, rgba(37,99,235,0.35), 12, 0, 0, 4);" +
+        "-fx-cursor: hand;"
+    );
+    openFolderButton.setOnAction(e -> openImageFolder());
 
-      return topBar;
-  }
+    Label title = new Label("Photo Studio");
+    title.setStyle(
+        "-fx-font-size: 28px;" +
+        "-fx-font-weight: 900;" +
+        "-fx-text-fill: #111827;" +
+        "-fx-padding: 0 8 0 0;"
+    );
+
+      Label subtitle = new Label("Photo • Edit • Create");
+    subtitle.setStyle(
+        "-fx-font-size: 12px;" +
+        "-fx-text-fill: #64748b;" +
+        "-fx-font-weight: bold;"
+    );
+
+    //   // Cleaned layout: spacer and theme toggle button are completely removed
+    //   HBox topBar = new HBox(15, title, openFolderButton);
+
+     VBox titleBox = new VBox(2, title, subtitle);
+    titleBox.setAlignment(Pos.CENTER_LEFT);
+
+      //return topBar;
+  
+
+    Region spacer = new Region();
+    HBox.setHgrow(spacer, Priority.ALWAYS);
+
+    Button themeToggle = new Button("☀");
+    themeToggle.setStyle(
+    "-fx-background-color: transparent;" +
+    "-fx-font-size: 18px;" +
+    "-fx-cursor: hand;"
+);
+
+    HBox topBar = new HBox(18, titleBox, openFolderButton, spacer, themeToggle);
+    topBar.setPadding(new Insets(14, 22, 14, 22));
+    topBar.setAlignment(Pos.CENTER_LEFT);
+    topBar.setStyle(
+        "-fx-background-color: linear-gradient(to right, #ffffff, #eef2ff);" +
+        "-fx-border-color: #e5e7eb;" +
+        "-fx-border-width: 0 0 1 0;"
+    );
+
+    return topBar;
+}
 
     private VBox createNavigationPanel() {
         Label menuTitle = new Label("MENU");
@@ -216,15 +270,17 @@ private HBox createTopBar() {
         BorderPane content = new BorderPane();
         content.setPadding(new Insets(18));
 content.setStyle(
-        "-fx-background-color: transparent;"
+        "-fx-background-color: linear-gradient(to bottom right, #f8fafc, #eef2ff);" +
+        "-fx-background-radius: 24;" +
+        "-fx-padding: 18;"
 );
 
-        Label galleryTitle = new Label("📂 Image Gallery");
-      galleryTitle.setStyle(
-        "-fx-font-size: 20px;" +
+    Label galleryTitle = new Label("📂 Image Gallery");
+    galleryTitle.setStyle(
+        "-fx-font-size: 26px;" +
         "-fx-font-weight: bold;" +
-        "-fx-padding: 0 0 14 0;" +
-        "-fx-text-fill: #111827;"
+        "-fx-text-fill: #111827;" +
+        "-fx-padding: 0 0 16 0;"
 );
         content.setTop(galleryTitle);
         content.setLeft(createThumbnailSection());
@@ -240,11 +296,20 @@ content.setStyle(
         thumbnailPane.setHgap(10);
         thumbnailPane.setVgap(10);
         thumbnailPane.setPrefWrapLength(220);
+        thumbnailPane.setStyle(
+        "-fx-background-color: #111827;" +
+        "-fx-background-radius: 22;"
+);
 
         ScrollPane scrollPane = new ScrollPane(thumbnailPane);
         scrollPane.setPrefWidth(250);
         scrollPane.setFitToWidth(true);
-      scrollPane.setStyle(cardStyle());
+            scrollPane.setStyle(
+        "-fx-background-color: #111827;" +
+        "-fx-background-radius: 22;" +
+        "-fx-padding: 10;" +
+        "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.18), 18, 0, 0, 6);"
+);
         return scrollPane;
     }
 
@@ -301,7 +366,12 @@ fileNameLabel.setStyle(
         centerBox.setAlignment(Pos.TOP_CENTER);
 
         StackPane previewPane = new StackPane(centerBox);
-previewPane.setStyle(darkCardStyle());
+        previewPane.setStyle(
+        "-fx-background-color: linear-gradient(to bottom right, #020617, #111827);" +
+        "-fx-background-radius: 24;" +
+        "-fx-padding: 18;" +
+        "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.28), 24, 0, 0, 8);"
+);
         return previewPane;
     }
 
@@ -320,6 +390,9 @@ previewPane.setStyle(darkCardStyle());
 
         Button saveButton = new Button("Save Annotation");
         saveButton.setMaxWidth(Double.MAX_VALUE);
+        saveButton.setStyle(greenButtonStyle());
+        saveButton.setMaxWidth(Double.MAX_VALUE);
+
         saveButton.setDisable(true);
         // 1. Initial State (Disabled and Faded)
 saveButton.setDisable(true);
@@ -347,7 +420,12 @@ annotationArea.textProperty().addListener((obs, oldText, newText) -> {
 VBox rightBox = new VBox(10, annotationLabel, annotationArea, saveButton);       
       rightBox.setPadding(new Insets(15));
       rightBox.setPrefWidth(280);
-      rightBox.setStyle(cardStyle());
+      rightBox.setStyle(
+        "-fx-background-color: #ffffff;" +
+        "-fx-background-radius: 24;" +
+        "-fx-padding: 18;" +
+        "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.12), 18, 0, 0, 6);"
+);
 
         return rightBox;
     }
@@ -730,7 +808,7 @@ private void showObjectTransformPage() {
 
         if (x >= 0 && y >= 0 && x < bimg.getWidth() && y < bimg.getHeight()) {
             this.pickedColor = new java.awt.Color(bimg.getRGB(x, y), true);
-            selectedColorLabel.setText("Color Selected");
+            selectedColorLabel.setText(String.format("Selected: %d, %d, %d", pickedColor.getRed(), pickedColor.getGreen(), pickedColor.getBlue()));
             selectedColorLabel.setStyle("-fx-text-fill: #34C759;");
         }
     });
@@ -753,14 +831,23 @@ private void showObjectTransformPage() {
     historyControls.getChildren().addAll(undoBtn, redoBtn);
 
     Label toolsLabel = new Label("Geometric & Selection");
-    toolsLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 16px; -fx-text-fill: white;");
+    toolsLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 22px; -fx-text-fill: white;");
 
+    // Slider scaleS = new Slider(10, 300, 100); 
+    // Slider rotateS = new Slider(-180, 180, 0);
+    // Slider transX = new Slider(-300, 300, 0);
+    // Slider transY = new Slider(-300, 300, 0);
+    Label scaleLab = new Label("Scale: 100%");
     Slider scaleS = new Slider(10, 300, 100); 
+    Label rotateLab = new Label("Rotation: 0°");
     Slider rotateS = new Slider(-180, 180, 0);
-    Slider transX = new Slider(-300, 300, 0);
-    Slider transY = new Slider(-300, 300, 0);
+    Label transXLab = new Label("Translation X: 0");
+    Slider transX = new Slider(-canvasWidth, canvasWidth, 0);
+    Label transYLab = new Label("Translation Y: 0");
+    Slider transY = new Slider(-canvasHeight, canvasHeight, 0);
     
     // Design Sliders
+    List.of(scaleLab, rotateLab, transXLab, transYLab).forEach(l -> l.setStyle("-fx-text-fill: #EBEBF5; -fx-font-size: 13px; -fx-opacity: 0.85;"));
     List.of(scaleS, rotateS, transX, transY).forEach(this::setupSliderDesign);
 
 
@@ -769,15 +856,31 @@ private void showObjectTransformPage() {
     saveBtn.setDisable(true);
     saveBtn.setStyle("-fx-background-color: #007AFF; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 10; -fx-padding: 12; -fx-opacity: 0.5;");
     
+    // Runnable applyRealTime = () -> {
+    //     saveBtn.setDisable(false);
+    //     saveBtn.setStyle("-fx-background-color: #007AFF; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 10; -fx-padding: 10;");
+        
+    //     double s = scaleS.getValue() / 100.0;
+    //     preview.setScaleX(s); preview.setScaleY(s);
+    //     preview.setRotate(rotateS.getValue());
+    //     preview.setTranslateX(transX.getValue());
+    //     preview.setTranslateY(-transY.getValue());
+    // };
+
+        // Transformation Actions
     Runnable applyRealTime = () -> {
         saveBtn.setDisable(false);
-        saveBtn.setStyle("-fx-background-color: #007AFF; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 10; -fx-padding: 10;");
-        
+        saveBtn.setStyle("-fx-background-color: #007AFF; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 10; -fx-padding: 12; -fx-opacity: 1.0;");
         double s = scaleS.getValue() / 100.0;
-        preview.setScaleX(s); preview.setScaleY(s);
-        preview.setRotate(rotateS.getValue());
-        preview.setTranslateX(transX.getValue());
-        preview.setTranslateY(-transY.getValue());
+        double r = rotateS.getValue();
+        double tx = transX.getValue();
+        double ty = -transY.getValue();
+        scaleLab.setText(String.format("Scale: %.0f%%", scaleS.getValue()));
+        rotateLab.setText(String.format("Rotation: %.0f°", r));
+        transXLab.setText(String.format("Translation X: %.0f", tx));
+        transYLab.setText(String.format("Translation Y: %.0f", -ty));
+        preview.setScaleX(s); preview.setScaleY(s); preview.setRotate(r);
+        preview.setTranslateX(tx); preview.setTranslateY(ty);
     };
 
     scaleS.valueProperty().addListener((o, old, v) -> applyRealTime.run());
@@ -797,30 +900,104 @@ private void showObjectTransformPage() {
             this.latestSavedFile = output;
             this.latestSavedType = "image";
             
-            showAlert("Saved successfully!");
-            saveBtn.setDisable(true);
-            saveBtn.setStyle("-fx-background-color: #1c1c1e; -fx-text-fill: #8E8E93;");
+            showAlert("Edited image saved as a new file:" + output.getName());
+
             refreshThumbnails();
         } catch (Exception ex) { showAlert("Error saving: " + ex.getMessage()); }
     });
 
+     Label extractLabel = new Label("Object Extraction");
+    extractLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 14px; -fx-text-fill: white;"); 
+
     // Extraction Section
     Slider toleranceS = new Slider(0, 150, 60);
     this.setupSliderDesign(toleranceS);
+
     Button extractBtn = new Button("Extract & Save Object");
     extractBtn.setMaxWidth(Double.MAX_VALUE);
     extractBtn.setStyle("-fx-background-color: #34C759; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 10; -fx-padding: 10;");
 
+    extractBtn.setOnAction(e -> {
+    if (this.pickedColor == null) {
+        showAlert("Click the image to pick a color first!");
+        return;
+    }
+
+    try {
+        BufferedImage original = fxToBufferedImage(mainImageView.getImage());
+
+        BufferedImage extracted = dip_advanced.ObjectExtractor.extractByColor(
+                original,
+                this.pickedColor,
+                (int) toleranceS.getValue()
+        );
+
+        Image fxExtracted = SwingFXUtils.toFXImage(extracted, null);
+
+        Stage previewStage = new Stage();
+        previewStage.setTitle("Object Extraction Preview");
+
+        ImageView previewImage = new ImageView(fxExtracted);
+        previewImage.setFitWidth(500);
+        previewImage.setFitHeight(400);
+        previewImage.setPreserveRatio(true);
+
+        Button saveExtractedBtn = new Button("Save Extracted Object");
+        saveExtractedBtn.setStyle(greenButtonStyle());
+
+        saveExtractedBtn.setOnAction(saveEvent -> {
+            try {
+                File outputFile = new File("extracted_" + System.currentTimeMillis() + ".png");
+                ImageIO.write(extracted, "png", outputFile);
+                showAlert("Saved: " + outputFile.getName());
+                previewStage.close();
+            } catch (Exception ex) {
+                ex.printStackTrace();
+                showAlert("Failed to save extracted object.");
+            }
+        });
+
+        VBox previewLayout = new VBox(15, previewImage, saveExtractedBtn);
+        previewLayout.setPadding(new Insets(20));
+        previewLayout.setAlignment(Pos.CENTER);
+        previewLayout.setStyle("-fx-background-color: #111827;");
+
+        previewStage.setScene(new javafx.scene.Scene(previewLayout, 600, 520));
+        previewStage.show();
+
+    } catch (Exception ex) {
+        ex.printStackTrace();
+        showAlert("Failed to extract object.");
+    }
+});
+
     // Sidebar Assembly
-    controlSideBar.getChildren().addAll(
-        historyControls, toolsLabel, new Separator(),
-        new Label("Scale") {{ setStyle("-fx-text-fill: white;"); }}, scaleS,
-        new Label("Rotation") {{ setStyle("-fx-text-fill: white;"); }}, rotateS,
-        new Label("Translation X/Y") {{ setStyle("-fx-text-fill: white;"); }}, transX, transY,
-        saveBtn, new Separator(),
-        new Label("Object Extraction") {{ setStyle("-fx-text-fill: white; -fx-font-weight: bold;"); }},
-        selectedColorLabel, toleranceS, extractBtn,
-        new Region() {{ VBox.setVgrow(this, Priority.ALWAYS); }}, // Push reset to bottom
+    // controlSideBar.getChildren().addAll(
+    //     historyControls, toolsLabel, new Separator(),
+    //     new Label("Scale") {{ setStyle("-fx-text-fill: white;"); }}, scaleS,
+    //     new Label("Rotation") {{ setStyle("-fx-text-fill: white;"); }}, rotateS,
+    //     new Label("Translation X/Y") {{ setStyle("-fx-text-fill: white;"); }}, transX, transY,
+    //     saveBtn, new Separator(),
+    //     new Label("Object Extraction") {{ setStyle("-fx-text-fill: white; -fx-font-weight: bold;"); }},
+    //     selectedColorLabel, toleranceS, extractBtn,
+    //     new Region() {{ VBox.setVgrow(this, Priority.ALWAYS); }}, // Push reset to bottom
+    //     new Button("Reset All") {{ 
+    //         setStyle("-fx-background-color: transparent; -fx-text-fill: #FF453A; -fx-font-weight: bold;");
+    //         setOnAction(ev -> {
+    //             scaleS.setValue(100); rotateS.setValue(0); transX.setValue(0); transY.setValue(0);
+    //             saveBtn.setDisable(true);
+    //         });
+    //     }}
+    // );
+
+      controlSideBar.getChildren().addAll(
+        toolsLabel, new Separator() {{ setStyle("-fx-background-color: #2F3336;"); }},
+        scaleLab, scaleS, rotateLab, rotateS, transXLab, transX, transYLab, transY,
+        saveBtn,
+        new Separator() {{ setStyle("-fx-background-color: #2F3336;"); }},
+        extractLabel, selectedColorLabel, new Label("Tolerance") {{ setStyle("-fx-text-fill: white; -fx-font-size: 11px;"); }},
+        toleranceS, extractBtn,
+        new Region() {{ VBox.setVgrow(this, Priority.ALWAYS); }}, 
         new Button("Reset All") {{ 
             setStyle("-fx-background-color: transparent; -fx-text-fill: #FF453A; -fx-font-weight: bold;");
             setOnAction(ev -> {
@@ -928,6 +1105,9 @@ private void showEditingPage() {
         boolean success = ImageIO.write(editedBufferedImage, "png", output);
 
         if (success) {
+            this.latestSavedFile = output;
+            this.latestSavedType = "image";
+
             showAlert("Edited image saved as a new file: " + output.getName());
 
             // 4. Reset the save button
@@ -1176,14 +1356,39 @@ private ScrollPane createGalleryMiniList() {
         StackPane thumbnailStack = new StackPane(thumbnail, heart);
         StackPane.setAlignment(heart, Pos.TOP_RIGHT);
 
-        thumbnailStack.setStyle(
-        "-fx-background-color: #f9fafb;" +
-        "-fx-background-radius: 12;" +
-        "-fx-border-color: #e5e7eb;" +
-        "-fx-border-radius: 12;" +
-        "-fx-padding: 6;" +
-        "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.10), 6, 0, 0, 2);"
-);
+         thumbnailStack.setStyle(
+        "-fx-background-color: #1f2937;" +
+        "-fx-background-radius: 14;" +
+        "-fx-border-color: #334155;" +
+        "-fx-border-radius: 14;" +
+        "-fx-border-width: 2;" +
+        "-fx-padding: 7;" +
+        "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.25), 8, 0, 0, 3);" +
+        "-fx-cursor: hand;" );
+
+        String normalThumbStyle =
+        "-fx-background-color: #1f2937;" +
+        "-fx-background-radius: 14;" +
+        "-fx-border-color: #334155;" +
+        "-fx-border-radius: 14;" +
+        "-fx-border-width: 2;" +
+        "-fx-padding: 7;" +
+        "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.25), 8, 0, 0, 3);" +
+        "-fx-cursor: hand;";
+
+String hoverThumbStyle =
+        "-fx-background-color: #2563eb;" +
+        "-fx-background-radius: 14;" +
+        "-fx-border-color: #60a5fa;" +
+        "-fx-border-radius: 14;" +
+        "-fx-border-width: 2;" +
+        "-fx-padding: 7;" +
+        "-fx-effect: dropshadow(gaussian, rgba(37,99,235,0.45), 12, 0, 0, 4);" +
+        "-fx-cursor: hand;";
+
+thumbnailStack.setStyle(normalThumbStyle);
+thumbnailStack.setOnMouseEntered(e -> thumbnailStack.setStyle(hoverThumbStyle));
+thumbnailStack.setOnMouseExited(e -> thumbnailStack.setStyle(normalThumbStyle));
 
         thumbnailStack.setOnMouseClicked(e -> displayImage(imageModel));
 
@@ -1270,42 +1475,71 @@ private void showSharePage() {
     VBox shareLayout = new VBox(20);
     shareLayout.setAlignment(Pos.CENTER);
     shareLayout.setPadding(new Insets(30));
+    shareLayout.setStyle("-fx-background-color: #f9fafb;");
 
-    Label title = new Label("📤 External Distribution");
-    title.setStyle("-fx-font-size: 24px; -fx-font-weight: bold;");
+    Label title = new Label("📤 Export & Share");
+    title.setStyle("-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: #111827;");
 
-    Label desc = new Label("Select a platform to share your current image:");
-    
-    // Create the Action Buttons
-    Button whatsappBtn = new Button("Share to WhatsApp");
-    Button emailBtn = new Button("Share via Email");
-    
-    // Style them (assuming you have a nav-button style)
-    whatsappBtn.getStyleClass().add("nav-button");
-    emailBtn.getStyleClass().add("nav-button");
+    if (latestSavedFile == null) {
+        Label noFileLabel = new Label("Nothing to share yet!\nPlease save an edited photo or export a video first.");
+        noFileLabel.setStyle("-fx-text-fill: #ef4444; -fx-font-size: 14px;");
+        shareLayout.getChildren().addAll(title, noFileLabel);
+    } else {
+        Label fileInfo = new Label("Ready to share: " + latestSavedFile.getName());
+        fileInfo.setStyle("-fx-font-size: 14px; -fx-text-fill: #6b7280;");
 
-    // BRIDGE TO CONTROLLER
-    whatsappBtn.setOnAction(e -> {
-        if (currentImage != null) {
-            
-            // 2. Show the instructions clearly
+        Button whatsappBtn = new Button("Share to WhatsApp");
+        Button emailBtn = new Button("Share via Gmail");
+        
+        whatsappBtn.getStyleClass().add("nav-button");
+        emailBtn.getStyleClass().add("nav-button");
+        whatsappBtn.setPrefWidth(250);
+        emailBtn.setPrefWidth(250);
+
+        // --- WhatsApp Logic (Images Only) ---
+        if (latestSavedType.equals("video")) {
+            whatsappBtn.setDisable(true);
+            whatsappBtn.setText("WhatsApp (Images Only)");
+        }
+
+        whatsappBtn.setOnAction(e -> {
             Alert instructions = new Alert(Alert.AlertType.INFORMATION);
-            instructions.setTitle("WhatsApp Sharing Instructions");
-            instructions.setHeaderText("Image Copied to Clipboard!");
+            instructions.setTitle("WhatsApp Sharing");
+            instructions.setHeaderText("Image Copied!");
             instructions.setContentText(
-                "1. WhatsApp Web will now open in your browser.\n" +
-                "2. Select the contact you want to share with.\n" +
-                "3. Click on the message box and press CTRL + V to paste the image.\n"
+                "1. WhatsApp Web will open.\n" +
+                "2. Pick a contact.\n" +
+                "3. Press CTRL + V in the chat to paste your edited image."
             );
             instructions.showAndWait();
+            controller.handleWhatsAppShare(latestSavedFile);
+        });
 
-            controller.handleWhatsAppShare(currentImage);
+        // --- Email Logic (Works for both) ---
+emailBtn.setOnAction(e -> {
+    if (latestSavedFile != null) {
+        Alert info = new Alert(Alert.AlertType.INFORMATION);
+        info.setTitle("Gmail Sharing");
+        
+        if (latestSavedType.equals("image")) {
+            info.setHeaderText("Image Copied to Clipboard!");
+            info.setContentText("1. Gmail will open in your browser.\n" +
+                                "2. Click the email body.\n" +
+                                "3. Press CTRL + V to paste your image!");
+        } else {
+            info.setHeaderText("Video Path Ready");
+            info.setContentText("Gmail will open. Please use the 'Paperclip' icon\n" +
+                                "to attach the video from the path provided in the email body.");
         }
-    });
+        
+        info.showAndWait();
+        controller.handleEmailShare(latestSavedFile);
+    }
+});
 
-    shareLayout.getChildren().addAll(title, desc, whatsappBtn, emailBtn);
+        shareLayout.getChildren().addAll(title, fileInfo, whatsappBtn, emailBtn);
+    }
     
-    // Set this as the center of your main layout
     root.setCenter(shareLayout);
 }
 
@@ -1355,7 +1589,11 @@ private void showMosaicPage() {
     VBox layout = new VBox(18);
     layout.setPadding(new Insets(22));
     layout.setAlignment(Pos.TOP_CENTER);
-    layout.setStyle(cardStyle());
+    layout.setStyle(
+    "-fx-background-color: linear-gradient(to bottom right, #ffffff, #f1f5f9);" +
+    "-fx-background-radius: 24;" +
+    "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.12), 22, 0, 0, 8);"
+);
 
     Label title = new Label("🖼️ True Photomosaic Studio");
     title.setStyle("-fx-font-size: 28px; -fx-font-weight: bold; -fx-text-fill: #111827;");
@@ -1549,7 +1787,11 @@ private void showVideoPage() {
     layout.setStyle(cardStyle());
 
     Label title = new Label("🎬 Video Story Creator");
-    title.setStyle("-fx-font-size: 28px; -fx-font-weight: bold; -fx-text-fill: #111827;");
+    title.setStyle(
+    "-fx-font-size: 32px;" +
+    "-fx-font-weight: bold;" +
+    "-fx-text-fill: #111827;"
+);
 
     Label subtitle = new Label("Build a slideshow video sequence from your favourite images.");
     subtitle.setStyle("-fx-font-size: 13px; -fx-text-fill: #6b7280;");
@@ -1669,6 +1911,34 @@ loadFavBtn.setOnAction(e -> {
     Button restartBtn = new Button("🔁 Restart");
     Button prevBtn = new Button("⬅ Previous");
     Button nextBtn = new Button("Next ➡");
+
+    Button saveVideoBtn = new Button("⬇ Save Video");
+
+saveVideoBtn.setStyle(
+    "-fx-background-color: #ef4444;" +
+    "-fx-text-fill: white;" +
+    "-fx-font-weight: bold;" +
+    "-fx-background-radius: 12;" +
+    "-fx-padding: 10 18;" +
+    "-fx-cursor: hand;"
+);
+
+saveVideoBtn.setOnAction(e -> {
+    FileChooser fileChooser = new FileChooser();
+    fileChooser.setTitle("Save Video");
+
+    fileChooser.getExtensionFilters().add(
+        new FileChooser.ExtensionFilter("MP4 Video", "*.mp4")
+    );
+
+    fileChooser.setInitialFileName("slideshow_video.mp4");
+
+    File outputFile = fileChooser.showSaveDialog(stage);
+
+    if (outputFile != null) {
+        showAlert("Video export location selected:\n" + outputFile.getAbsolutePath());
+    } 
+});
 
     playBtn.setStyle(greenButtonStyle());
     pauseBtn.setStyle(primaryButtonStyle());
@@ -1818,7 +2088,15 @@ restartBtn.setOnAction(e -> {
     HBox captionBox = new HBox(10, captionInput, saveCaptionBtn);
     captionBox.setAlignment(Pos.CENTER);
 
-    HBox playbackControls = new HBox(10, prevBtn, playBtn, pauseBtn, restartBtn, nextBtn);
+    HBox playbackControls = new HBox(
+    10,
+    prevBtn,
+    playBtn,
+    pauseBtn,
+    restartBtn,
+    nextBtn,
+    saveVideoBtn
+);
     playbackControls.setAlignment(Pos.CENTER);
 
     VBox videoArea = new VBox(14, videoPane, durationLabel, durationSlider, captionBox, playbackControls);
