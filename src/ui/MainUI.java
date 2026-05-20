@@ -51,7 +51,6 @@ public class MainUI {
     private ImageView mainImageView;
     private TextArea annotationArea;
     private Label heartLabel;
-    private Label annotationOverlay;
     private Slider durationSlider;
     private Label fileNameLabel;
     private ImageView imageView;
@@ -341,18 +340,7 @@ fileNameLabel.setStyle(
         heartLabel = new Label("♥");
         heartLabel.setStyle("-fx-font-size: 42px; -fx-text-fill: red;");
         heartLabel.setVisible(false);
-        annotationOverlay = new Label();
-
-annotationOverlay.setStyle(
-    "-fx-background-color: rgba(0,0,0,0.75);" +
-    "-fx-text-fill: white;" +
-    "-fx-font-size: 18px;" +
-    "-fx-font-weight: bold;" +
-    "-fx-padding: 10 18;" +
-    "-fx-background-radius: 12;"
-);
-
-annotationOverlay.setVisible(false);
+       
 
         // --- ADD THIS LOGIC HERE ---
     if (currentImage != null) {
@@ -373,11 +361,9 @@ annotationOverlay.setVisible(false);
         }
     }
 
-StackPane imageStack = new StackPane(mainImageView, heartLabel, annotationOverlay);        StackPane.setAlignment(heartLabel, Pos.TOP_RIGHT);
+StackPane imageStack = new StackPane(mainImageView, heartLabel);       StackPane.setAlignment(heartLabel, Pos.TOP_RIGHT);
         StackPane.setMargin(heartLabel, new Insets(20));
-     StackPane.setAlignment(annotationOverlay, Pos.CENTER);
 
-annotationOverlay.setTranslateY(210);
 
         VBox centerBox = new VBox(15, fileNameLabel, imageStack);
         centerBox.setPadding(new Insets(20));
@@ -1426,12 +1412,7 @@ thumbnailStack.setOnMouseExited(e -> thumbnailStack.setStyle(normalThumbStyle));
         annotationArea.setText(annotation);
 
         heartLabel.setVisible(annotationManager.hasAnnotation(imageModel.getFilePath()));
-        if (annotation != null && !annotation.trim().isEmpty()) {
-    annotationOverlay.setText(annotation);
-    annotationOverlay.setVisible(true);
-} else {
-    annotationOverlay.setVisible(false);
-}
+    
     }
 
     private void saveAnnotation() {
@@ -1928,13 +1909,6 @@ loadFavBtn.setOnAction(e -> {
         captionLabel.setText(captionInput.getText());
 
         // Update annotation overlay
-        String annotation = captionInput.getText();
-        if (annotation != null && !annotation.trim().isEmpty()) {
-            annotationOverlay.setText(annotation);
-            annotationOverlay.setVisible(true);
-        } else {
-            annotationOverlay.setVisible(false);
-        }
 
         showAlert("Caption saved for this image.");
     });
