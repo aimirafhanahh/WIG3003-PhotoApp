@@ -16,6 +16,9 @@ import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.concurrent.Task;
 import javafx.util.Duration;
+import java.awt.Graphics2D;
+import java.awt.Font;
+import java.awt.FontMetrics;
 
 import javafx.scene.layout.*;
 import javafx.scene.shape.Rectangle;
@@ -48,6 +51,7 @@ public class MainUI {
     private ImageView mainImageView;
     private TextArea annotationArea;
     private Label heartLabel;
+    private Label annotationOverlay;
     private Slider durationSlider;
     private Label fileNameLabel;
     private ImageView imageView;
@@ -337,6 +341,18 @@ fileNameLabel.setStyle(
         heartLabel = new Label("♥");
         heartLabel.setStyle("-fx-font-size: 42px; -fx-text-fill: red;");
         heartLabel.setVisible(false);
+        annotationOverlay = new Label();
+
+annotationOverlay.setStyle(
+    "-fx-background-color: rgba(0,0,0,0.75);" +
+    "-fx-text-fill: white;" +
+    "-fx-font-size: 18px;" +
+    "-fx-font-weight: bold;" +
+    "-fx-padding: 10 18;" +
+    "-fx-background-radius: 12;"
+);
+
+annotationOverlay.setVisible(false);
 
         // --- ADD THIS LOGIC HERE ---
     if (currentImage != null) {
@@ -357,9 +373,11 @@ fileNameLabel.setStyle(
         }
     }
 
-        StackPane imageStack = new StackPane(mainImageView, heartLabel);
-        StackPane.setAlignment(heartLabel, Pos.TOP_RIGHT);
+StackPane imageStack = new StackPane(mainImageView, heartLabel, annotationOverlay);        StackPane.setAlignment(heartLabel, Pos.TOP_RIGHT);
         StackPane.setMargin(heartLabel, new Insets(20));
+     StackPane.setAlignment(annotationOverlay, Pos.CENTER);
+
+annotationOverlay.setTranslateY(210);
 
         VBox centerBox = new VBox(15, fileNameLabel, imageStack);
         centerBox.setPadding(new Insets(20));
@@ -1408,6 +1426,12 @@ thumbnailStack.setOnMouseExited(e -> thumbnailStack.setStyle(normalThumbStyle));
         annotationArea.setText(annotation);
 
         heartLabel.setVisible(annotationManager.hasAnnotation(imageModel.getFilePath()));
+        if (annotation != null && !annotation.trim().isEmpty()) {
+    annotationOverlay.setText(annotation);
+    annotationOverlay.setVisible(true);
+} else {
+    annotationOverlay.setVisible(false);
+}
     }
 
     private void saveAnnotation() {
@@ -1420,7 +1444,7 @@ thumbnailStack.setOnMouseExited(e -> thumbnailStack.setStyle(normalThumbStyle));
 
         currentImage.setAnnotation(annotation);
         annotationManager.saveAnnotation(currentImage.getFilePath(), annotation);
-
+         embedAnnotationOnImage(currentImage);
         heartLabel.setVisible(currentImage.hasAnnotation());
 
         refreshThumbnails();
@@ -1903,6 +1927,15 @@ loadFavBtn.setOnAction(e -> {
         annotationManager.saveAnnotation(selected.getFilePath(), captionInput.getText());
         captionLabel.setText(captionInput.getText());
 
+        // Update annotation overlay
+        String annotation = captionInput.getText();
+        if (annotation != null && !annotation.trim().isEmpty()) {
+            annotationOverlay.setText(annotation);
+            annotationOverlay.setVisible(true);
+        } else {
+            annotationOverlay.setVisible(false);
+        }
+
         showAlert("Caption saved for this image.");
     });
 
@@ -2280,6 +2313,37 @@ private boolean exportSlideshowToVideo(List<ImageModel> images, File outputFile,
     } catch (Exception ex) {
         ex.printStackTrace();
         return false;
+    }
+}
+private void embedAnnotationOnImage(ImageModel imageModel) {
+    try {
+        File file = new File(imageModel.getFilePath());
+
+        BufferedImage image = ImageIO.read(file);
+
+        Graphics2D g2d = image.createGraphics();
+
+        g2d.setFont(new Font("Arial", Font.BOLD, 40));
+
+        // white text
+        g2d.setColor(java.awt.Color.WHITE);
+
+        FontMetrics metrics = g2d.getFontMetrics();
+        String text = annotationArea.getText();
+
+        int x = (image.getWidth() - metrics.stringWidth(text)) / 2;
+        int y = image.getHeight() - 50;
+
+        g2d.drawString(text, x, y);
+
+        g2d.dispose();
+
+        ImageIO.write(image, "png", file);
+
+        displayImage(imageModel);
+
+    } catch (Exception ex) {
+        ex.printStackTrace();
     }
 }
 }
